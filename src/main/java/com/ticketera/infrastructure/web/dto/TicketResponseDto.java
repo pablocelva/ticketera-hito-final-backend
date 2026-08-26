@@ -18,8 +18,8 @@ public record TicketResponseDto(
     public static TicketResponseDto fromDomain(Ticket ticket) {
         return new TicketResponseDto(
             ticket.getId().value(),
-            ticket.getEventId(),
+            Long.parseLong(ticket.getEventId().value()),
             ticket.getCustomerName(),
-            ticket.getCustomerEmail());
+            ticket.getCustomerEmail() != null ? ticket.getCustomerEmail().value() : null);
     }
 }

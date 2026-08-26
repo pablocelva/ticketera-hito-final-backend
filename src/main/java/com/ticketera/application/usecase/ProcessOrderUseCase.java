@@ -6,9 +6,13 @@ import com.ticketera.domain.entity.Ticket;
 import com.ticketera.domain.exception.EventNotFoundException;
 import com.ticketera.domain.repository.EventRepository;
 import com.ticketera.domain.repository.TicketRepository;
+import com.ticketera.domain.valueobject.EventId;
+import com.ticketera.domain.valueobject.Money;
+import com.ticketera.domain.valueobject.OrderStatus;
 import com.ticketera.domain.valueobject.TicketId;
 import com.ticketera.domain.valueobject.TicketQuantity;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 public class ProcessOrderUseCase {
@@ -38,12 +42,23 @@ public class ProcessOrderUseCase {
         event.reserveTickets(tickets);
         eventRepository.save(event);
 
+        double unitPrice = event.getPrice().value();
+        double totalPrice = unitPrice * quantity;
+        String orderId = UUID.randomUUID().toString();
+        String resolvedName = customerName != null ? customerName : "anonymous";
+        String resolvedEmail = (customerEmail != null && !customerEmail.isBlank()) ? customerEmail : null;
+
         for (int i = 0; i < quantity; i++) {
             Ticket ticket = new Ticket(
                 new TicketId(UUID.randomUUID().toString()),
-                event.getDbId(),
-                customerName != null ? customerName : "anonymous",
-                customerEmail != null ? customerEmail : "");
+                new EventId(event.getCode().value()),
+                resolvedName,
+                resolvedEmail != null ? new com.ticketera.domain.valueobject.Email(resolvedEmail) : null,
+                orderId,
+                new Money(unitPrice),
+                new Money(totalPrice),
+                OrderStatus.CONFIRMED,
+                LocalDateTime.now());
             ticketRepository.save(ticket);
         }
 
@@ -51,7 +66,17 @@ public class ProcessOrderUseCase {
             "Order processed for: " + event.getName()
                 + " (" + tickets.value() + " tickets), with ID: " + event.getCode().value());
 
-        return new OrderResult(event.getCode().value(), event.getName(),
-            tickets.value(), event.getAvailableTickets());
+        return new OrderResult(
+            orderId,
+            event.getCode().value(),
+            event.getName(),
+            resolvedName,
+            resolvedEmail,
+            tickets.value(),
+            event.getAvailableTickets(),
+            unitPrice,
+            totalPrice,
+            OrderStatus.CONFIRMED.name(),
+            LocalDateTime.now().toString());
     }
 }

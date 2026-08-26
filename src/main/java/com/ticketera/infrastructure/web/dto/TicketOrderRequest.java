@@ -22,6 +22,9 @@ public record TicketOrderRequest(
 
     @Schema(description = "Email opcional para confirmacion", example = "customer@email.com")
     @Email(message = "Customer email must be valid")
-    String customerEmail
+    String customerEmail,
+
+    @Schema(description = "Precio unitario de la entrada", example = "25000.0")
+    Double unitPrice
 ) {
 }

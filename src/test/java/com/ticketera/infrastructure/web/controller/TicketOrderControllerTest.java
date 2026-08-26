@@ -33,10 +33,12 @@ class TicketOrderControllerTest {
     private SendBookingConfirmationUseCase sendBookingConfirmationUseCase;
 
     @Test
-    @DisplayName("Purchases tickets and returns 201")
+    @DisplayName("Purchases tickets and returns 201 with enriched response")
     void purchasesTicketsAndReturns201() throws Exception {
         when(processOrderUseCase.execute(eq(1L), eq(2), anyString(), anyString()))
-            .thenReturn(new OrderResult("evt-1", "Jazz Night", 2, 98));
+            .thenReturn(new OrderResult(
+                "order-001", "evt-1", "Jazz Night", "Juan", "customer@email.com",
+                2, 98, 25000.0, 50000.0, "CONFIRMED", "2026-08-25T12:00:00"));
 
         mockMvc.perform(post("/api/v1/orders")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -44,10 +46,17 @@ class TicketOrderControllerTest {
                     {"eventId": 1, "quantity": 2, "customerName": "Juan", "customerEmail": "customer@email.com"}
                     """))
             .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.id").value("order-001"))
             .andExpect(jsonPath("$.eventId").value("evt-1"))
             .andExpect(jsonPath("$.eventName").value("Jazz Night"))
+            .andExpect(jsonPath("$.customerName").value("Juan"))
+            .andExpect(jsonPath("$.customerEmail").value("customer@email.com"))
             .andExpect(jsonPath("$.ticketsPurchased").value(2))
-            .andExpect(jsonPath("$.remainingTickets").value(98));
+            .andExpect(jsonPath("$.remainingTickets").value(98))
+            .andExpect(jsonPath("$.unitPrice").value(25000.0))
+            .andExpect(jsonPath("$.totalPrice").value(50000.0))
+            .andExpect(jsonPath("$.status").value("CONFIRMED"))
+            .andExpect(jsonPath("$.createdAt").value("2026-08-25T12:00:00"));
 
         verify(sendBookingConfirmationUseCase).execute("customer@email.com", "Jazz Night");
     }
@@ -56,14 +65,18 @@ class TicketOrderControllerTest {
     @DisplayName("Purchases without optional email skips confirmation")
     void purchasesWithoutOptionalEmailSkipsConfirmation() throws Exception {
         when(processOrderUseCase.execute(eq(1L), eq(2), any(), any()))
-            .thenReturn(new OrderResult("evt-1", "Jazz Night", 2, 98));
+            .thenReturn(new OrderResult(
+                "order-002", "evt-1", "Jazz Night", "anonymous", null,
+                2, 98, 25000.0, 50000.0, "CONFIRMED", "2026-08-25T12:00:00"));
 
         mockMvc.perform(post("/api/v1/orders")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {"eventId": 1, "quantity": 2}
                     """))
-            .andExpect(status().isCreated());
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.id").value("order-002"))
+            .andExpect(jsonPath("$.status").value("CONFIRMED"));
 
         verify(sendBookingConfirmationUseCase, never()).execute(any(), any());
     }
