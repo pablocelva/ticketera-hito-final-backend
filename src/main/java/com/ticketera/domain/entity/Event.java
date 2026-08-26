@@ -2,6 +2,7 @@ package com.ticketera.domain.entity;
 
 import com.ticketera.domain.valueobject.CityId;
 import com.ticketera.domain.valueobject.EventId;
+import com.ticketera.domain.valueobject.EventStatus;
 import com.ticketera.domain.valueobject.Money;
 import com.ticketera.domain.valueobject.TicketQuantity;
 
@@ -22,7 +23,7 @@ public class Event {
     private Money price;
     private String imageUrl;
     private boolean featured;
-    private String status;
+    private EventStatus status;
 
     public Event(String code, String name, String venue, int capacity,
                  String artist, LocalDateTime eventDate, String eventTime,
@@ -39,13 +40,13 @@ public class Event {
         this.price = new Money(price);
         this.imageUrl = imageUrl;
         this.featured = featured;
-        this.status = "SCHEDULED";
+        this.status = EventStatus.SCHEDULED;
     }
 
     public static Event reconstitute(Long id, EventId code, CityId cityId,
                                      String name, String venue, int capacity, int availableTickets,
                                      String artist, LocalDateTime eventDate, String eventTime,
-                                     double price, boolean featured, String status, String imageUrl) {
+                                     double price, boolean featured, EventStatus status, String imageUrl) {
         return new Event(id, code, cityId, name, venue, capacity, availableTickets,
             artist, eventDate, eventTime, price, featured, status, imageUrl);
     }
@@ -53,7 +54,7 @@ public class Event {
     private Event(Long id, EventId code, CityId cityId,
                   String name, String venue, int capacity, int availableTickets,
                   String artist, LocalDateTime eventDate, String eventTime,
-                  double price, boolean featured, String status, String imageUrl) {
+                  double price, boolean featured, EventStatus status, String imageUrl) {
         this.id = id;
         this.code = code;
         this.cityId = cityId;
@@ -150,7 +151,7 @@ public class Event {
         return featured;
     }
 
-    public String getStatus() {
+    public EventStatus getStatus() {
         return status;
     }
 

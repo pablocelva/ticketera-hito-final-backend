@@ -3,6 +3,7 @@ package com.ticketera.domain.entity;
 import com.ticketera.domain.exception.InvalidOrderException;
 import com.ticketera.domain.exception.SoldOutException;
 import com.ticketera.domain.valueobject.EventId;
+import com.ticketera.domain.valueobject.EventStatus;
 import com.ticketera.domain.valueobject.TicketQuantity;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -34,7 +35,7 @@ public class EventTest {
         assertEquals(25000.0, event.getPrice().value());
         assertEquals("/images/jazz.webp", event.getImageUrl());
         assertTrue(event.isFeatured());
-        assertEquals("SCHEDULED", event.getStatus());
+        assertEquals(EventStatus.SCHEDULED, event.getStatus());
     }
 
     @Test
@@ -103,14 +104,14 @@ public class EventTest {
             new com.ticketera.domain.valueobject.CityId(1L),
             "Jazz Night", "Teatro", 100, 30,
             "Miles Davis", LocalDateTime.of(2026, 12, 1, 20, 0), "20:00",
-            25000.0, true, "ON_SALE", "/images/jazz.webp");
+            25000.0, true, EventStatus.ON_SALE, "/images/jazz.webp");
 
         assertEquals(30, event.getAvailableTickets());
         assertEquals(70, event.getTicketSold());
         assertEquals("Miles Davis", event.getArtist());
         assertEquals(25000.0, event.getPrice().value());
         assertTrue(event.isFeatured());
-        assertEquals("ON_SALE", event.getStatus());
+        assertEquals(EventStatus.ON_SALE, event.getStatus());
 
         event.reserveTickets(new TicketQuantity(10));
         assertEquals(20, event.getAvailableTickets());
@@ -165,7 +166,7 @@ public class EventTest {
         Event event = Event.reconstitute(1L, new EventId("evt-1"),
             new com.ticketera.domain.valueobject.CityId(10L),
             "Rock", "Stadium", 200, 100,
-            "Bands", LocalDateTime.now(), "20:00", 30000.0, false, "SCHEDULED", "/img.jpg");
+            "Bands", LocalDateTime.now(), "20:00", 30000.0, false, EventStatus.SCHEDULED, "/img.jpg");
         assertEquals(10L, event.getCityId().value());
         assertEquals(200, event.getCapacity());
         assertEquals(100, event.getAvailableTickets());

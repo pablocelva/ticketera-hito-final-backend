@@ -3,6 +3,7 @@ package com.ticketera.infrastructure.persistence;
 import com.ticketera.domain.entity.Event;
 import com.ticketera.domain.valueobject.CityId;
 import com.ticketera.domain.valueobject.EventId;
+import com.ticketera.domain.valueobject.EventStatus;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -77,7 +78,7 @@ public class EventEntity {
             event.getPrice().value(),
             event.getImageUrl(),
             event.isFeatured(),
-            event.getStatus());
+            event.getStatus().name());
     }
 
     private EventEntity(Long id, String code, Long cityId, String name, String venue,
@@ -105,7 +106,7 @@ public class EventEntity {
             id, new EventId(code), new CityId(cityId),
             name, venue, capacity, availableTickets,
             artist, eventDate, eventTime,
-            price, featured, status, imageUrl);
+            price, featured, EventStatus.valueOf(status), imageUrl);
     }
 
     public Long getId() {

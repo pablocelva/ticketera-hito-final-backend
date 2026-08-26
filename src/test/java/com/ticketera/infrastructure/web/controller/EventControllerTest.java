@@ -10,6 +10,7 @@ import com.ticketera.domain.entity.Event;
 import com.ticketera.domain.exception.EventNotFoundException;
 import com.ticketera.domain.valueobject.CityId;
 import com.ticketera.domain.valueobject.EventId;
+import com.ticketera.domain.valueobject.EventStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,7 +57,7 @@ class EventControllerTest {
         return Event.reconstitute(1L, new EventId("evt-1"),
             new CityId(1L), "Jazz Night", "Teatro", 100, 90,
             "Miles Davis", LocalDateTime.of(2026, 12, 1, 20, 0), "20:00",
-            25000.0, true, "ON_SALE", "/images/jazz.webp");
+            25000.0, true, EventStatus.ON_SALE, "/images/jazz.webp");
     }
 
     @Test
@@ -113,7 +114,7 @@ class EventControllerTest {
             .thenReturn(Event.reconstitute(1L, new EventId("evt-new"),
                 new CityId(1L), "Rock Fest", "Estadio", 1000, 1000,
                 "AC/DC", LocalDateTime.of(2027, 1, 15, 21, 0), "21:00",
-                50000.0, false, "SCHEDULED", "/images/rock.webp"));
+                50000.0, false, EventStatus.SCHEDULED, "/images/rock.webp"));
 
         mockMvc.perform(post("/api/v1/events")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -159,7 +160,7 @@ class EventControllerTest {
             .thenReturn(Event.reconstitute(1L, new EventId("evt-1"),
                 new CityId(1L), "Rock Night", "Estadio", 500, 500,
                 "Bands", LocalDateTime.of(2027, 6, 1, 20, 0), "20:00",
-                30000.0, false, "ON_SALE", "/images/rock.webp"));
+                30000.0, false, EventStatus.ON_SALE, "/images/rock.webp"));
 
         mockMvc.perform(put("/api/v1/events/1")
                 .contentType(MediaType.APPLICATION_JSON)

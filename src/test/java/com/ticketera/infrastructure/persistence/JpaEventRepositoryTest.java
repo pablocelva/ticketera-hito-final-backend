@@ -17,6 +17,7 @@ import org.springframework.test.context.ActiveProfiles;
 import com.ticketera.domain.entity.Event;
 import com.ticketera.domain.valueobject.CityId;
 import com.ticketera.domain.valueobject.EventId;
+import com.ticketera.domain.valueobject.EventStatus;
 import com.ticketera.domain.valueobject.TicketQuantity;
 
 @DataJpaTest
@@ -45,7 +46,7 @@ class JpaEventRepositoryTest {
         Event event = Event.reconstitute(null, new EventId("evt-test-1"),
             new CityId(1L), "Jazz Night", "Teatro", 100, 90,
             "Miles Davis", LocalDateTime.of(2026, 12, 1, 20, 0), "20:00",
-            25000.0, true, "ON_SALE", "/images/jazz.webp");
+            25000.0, true, EventStatus.ON_SALE, "/images/jazz.webp");
 
         repository.save(event);
         Event recovered = repository.findByCode("evt-test-1").orElseThrow();
@@ -57,7 +58,7 @@ class JpaEventRepositoryTest {
         assertEquals("Miles Davis", recovered.getArtist());
         assertEquals(25000.0, recovered.getPrice().value());
         assertTrue(recovered.isFeatured());
-        assertEquals("ON_SALE", recovered.getStatus());
+        assertEquals(EventStatus.ON_SALE, recovered.getStatus());
         assertEquals("/images/jazz.webp", recovered.getImageUrl());
         assertEquals(LocalDateTime.of(2026, 12, 1, 20, 0), recovered.getEventDate());
         assertEquals("20:00", recovered.getEventTime());
@@ -67,7 +68,7 @@ class JpaEventRepositoryTest {
     void persistsReservationsMadeOnAggregate() {
         Event event = Event.reconstitute(null, new EventId("evt-test-2"),
             new CityId(1L), "Rock Fest", "Estadio", 1000, 500,
-            "AC/DC", LocalDateTime.now(), "21:00", 50000.0, false, "SCHEDULED", "/img.jpg");
+            "AC/DC", LocalDateTime.now(), "21:00", 50000.0, false, EventStatus.SCHEDULED, "/img.jpg");
 
         event.reserveTickets(new TicketQuantity(200));
         repository.save(event);
@@ -81,10 +82,10 @@ class JpaEventRepositoryTest {
     void listsAllPersistedEvents() {
         repository.save(Event.reconstitute(null, new EventId("evt-a"),
             new CityId(1L), "A", "V1", 10, 10,
-            "ArtA", LocalDateTime.now(), "20:00", 10000.0, false, "SCHEDULED", "/img.jpg"));
+            "ArtA", LocalDateTime.now(), "20:00", 10000.0, false, EventStatus.SCHEDULED, "/img.jpg"));
         repository.save(Event.reconstitute(null, new EventId("evt-b"),
             new CityId(1L), "B", "V2", 20, 15,
-            "ArtB", LocalDateTime.now(), "21:00", 20000.0, true, "ON_SALE", "/img.jpg"));
+            "ArtB", LocalDateTime.now(), "21:00", 20000.0, true, EventStatus.ON_SALE, "/img.jpg"));
 
         List<Event> all = repository.findAll();
 

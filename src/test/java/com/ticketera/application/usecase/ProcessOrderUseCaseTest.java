@@ -4,6 +4,7 @@ import com.ticketera.domain.entity.Event;
 import com.ticketera.domain.exception.EventNotFoundException;
 import com.ticketera.domain.repository.EventRepository;
 import com.ticketera.domain.repository.TicketRepository;
+import com.ticketera.domain.valueobject.EventStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,7 +33,7 @@ class ProcessOrderUseCaseTest {
             new com.ticketera.domain.valueobject.CityId(1L),
             "Jazz Night", "Gran Teatro", 500, 500,
             "Miles Davis", java.time.LocalDateTime.now(), "20:00",
-            25000.0, false, "SCHEDULED", "/img.jpg");
+            25000.0, false, EventStatus.SCHEDULED, "/img.jpg");
         when(eventRepository.findById(1L))
             .thenReturn(Optional.of(event));
     }

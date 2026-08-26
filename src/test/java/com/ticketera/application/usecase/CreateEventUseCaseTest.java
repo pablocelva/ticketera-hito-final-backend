@@ -2,6 +2,7 @@ package com.ticketera.application.usecase;
 
 import com.ticketera.domain.entity.Event;
 import com.ticketera.domain.repository.EventRepository;
+import com.ticketera.domain.valueobject.EventStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -41,7 +42,7 @@ class CreateEventUseCaseTest {
         assertEquals(25000.0, result.getPrice().value());
         assertEquals("/images/jazz.webp", result.getImageUrl());
         assertTrue(result.isFeatured());
-        assertEquals("SCHEDULED", result.getStatus());
+        assertEquals(EventStatus.SCHEDULED, result.getStatus());
         verify(repository).save(any(Event.class));
     }
 

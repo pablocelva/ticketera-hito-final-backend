@@ -6,6 +6,7 @@ import com.ticketera.domain.exception.InvalidOrderException;
 import com.ticketera.domain.repository.EventRepository;
 import com.ticketera.domain.valueobject.CityId;
 import com.ticketera.domain.valueobject.EventId;
+import com.ticketera.domain.valueobject.EventStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,7 +33,7 @@ class UpdateEventUseCaseTest {
     void updatesEventDetails() {
         Event event = Event.reconstitute(1L, new EventId("evt-1"),
             new CityId(1L), "Jazz Night", "Teatro", 100, 100,
-            "Art", LocalDateTime.now(), "20:00", 25000.0, false, "SCHEDULED", "/img.jpg");
+            "Art", LocalDateTime.now(), "20:00", 25000.0, false, EventStatus.SCHEDULED, "/img.jpg");
         when(repository.findById(1L)).thenReturn(Optional.of(event));
 
         LocalDateTime newDate = LocalDateTime.of(2027, 6, 15, 21, 0);
@@ -64,7 +65,7 @@ class UpdateEventUseCaseTest {
     void throwsWhenCapacityLessThanSold() {
         Event event = Event.reconstitute(1L, new EventId("evt-1"),
             new CityId(1L), "Jazz", "Teatro", 100, 80,
-            "Art", LocalDateTime.now(), "20:00", 10000.0, false, "SCHEDULED", "/img.jpg");
+            "Art", LocalDateTime.now(), "20:00", 10000.0, false, EventStatus.SCHEDULED, "/img.jpg");
         when(repository.findById(1L)).thenReturn(Optional.of(event));
 
         InvalidOrderException ex = assertThrows(InvalidOrderException.class,
