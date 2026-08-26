@@ -6,7 +6,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("Money Value Object")
 public class MoneyTest {
@@ -14,14 +15,18 @@ public class MoneyTest {
     @DisplayName("Should create valid money")
     public void shouldCreateValidMoney() {
         Money money = new Money(50.0);
-        assertEquals(50.0, money.value());
+
+        assertThat(money.value())
+            .as("Money value should be 50.0")
+            .isEqualTo(50.0);
     }
 
     @ParameterizedTest
     @ValueSource(doubles = {0.0, -1.0, -100.0})
     @DisplayName("Should throw InvalidOrderException when price is less than or equal to zero")
     public void shouldThrowWhenPriceIsNotPositive(double invalid) {
-        InvalidOrderException ex = assertThrows(InvalidOrderException.class, () -> new Money(invalid));
-        assertEquals("Price must be positive", ex.getMessage());
+        assertThatThrownBy(() -> new Money(invalid))
+            .isInstanceOf(InvalidOrderException.class)
+            .hasMessage("Price must be positive");
     }
 }

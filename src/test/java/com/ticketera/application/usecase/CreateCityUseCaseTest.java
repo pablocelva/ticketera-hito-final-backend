@@ -6,7 +6,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 class CreateCityUseCaseTest {
@@ -25,24 +26,24 @@ class CreateCityUseCaseTest {
     void createsCitySuccessfully() {
         City result = useCase.execute("LIM", "Lima");
 
-        assertEquals("LIM", result.getCode());
-        assertEquals("Lima", result.getName());
+        assertThat(result.getCode()).isEqualTo("LIM");
+        assertThat(result.getName()).isEqualTo("Lima");
         verify(repository).save(any(City.class));
     }
 
     @Test
     @DisplayName("Throws when code is null")
     void throwsWhenCodeIsNull() {
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-            () -> useCase.execute(null, "Lima"));
-        assertEquals("City code is required", ex.getMessage());
+        assertThatThrownBy(() -> useCase.execute(null, "Lima"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("City code is required");
     }
 
     @Test
     @DisplayName("Throws when name is blank")
     void throwsWhenNameIsBlank() {
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-            () -> useCase.execute("LIM", "  "));
-        assertEquals("City name is required", ex.getMessage());
+        assertThatThrownBy(() -> useCase.execute("LIM", "  "))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("City name is required");
     }
 }

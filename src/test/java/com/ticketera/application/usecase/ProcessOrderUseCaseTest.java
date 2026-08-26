@@ -11,7 +11,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 class ProcessOrderUseCaseTest {
@@ -42,36 +43,37 @@ class ProcessOrderUseCaseTest {
     @DisplayName("Throws EventNotFoundException when event id is null")
     void throwsWhenEventIdIsNull() {
         when(eventRepository.findById(null)).thenReturn(Optional.empty());
-        EventNotFoundException ex = assertThrows(EventNotFoundException.class,
-            () -> useCase.execute(null, 2));
-        assertTrue(ex.getMessage().contains("Event not found"));
+
+        assertThatThrownBy(() -> useCase.execute(null, 2))
+            .isInstanceOf(EventNotFoundException.class)
+            .hasMessageContaining("Event not found");
     }
 
     @Test
     @DisplayName("Throws when quantity is zero")
     void throwsWhenQuantityIsZero() {
-        com.ticketera.domain.exception.InvalidOrderException ex = assertThrows(
-            com.ticketera.domain.exception.InvalidOrderException.class,
-            () -> useCase.execute(1L, 0));
-        assertEquals("Quantity must be positive", ex.getMessage());
+        assertThatThrownBy(() -> useCase.execute(1L, 0))
+            .isInstanceOf(com.ticketera.domain.exception.InvalidOrderException.class)
+            .hasMessage("Quantity must be positive");
     }
 
     @Test
     @DisplayName("Throws when quantity is negative")
     void throwsWhenQuantityIsNegative() {
-        com.ticketera.domain.exception.InvalidOrderException ex = assertThrows(
-            com.ticketera.domain.exception.InvalidOrderException.class,
-            () -> useCase.execute(1L, -1));
-        assertEquals("Quantity must be positive", ex.getMessage());
+        assertThatThrownBy(() -> useCase.execute(1L, -1))
+            .isInstanceOf(com.ticketera.domain.exception.InvalidOrderException.class)
+            .hasMessage("Quantity must be positive");
     }
 
     @Test
     @DisplayName("Throws EventNotFoundException when event does not exist")
     void throwsEventNotFoundWhenEventDoesNotExist() {
         when(eventRepository.findById(999L)).thenReturn(Optional.empty());
-        EventNotFoundException ex = assertThrows(EventNotFoundException.class,
-            () -> useCase.execute(999L, 2));
-        assertEquals("Event not found: 999", ex.getMessage());
+
+        assertThatThrownBy(() -> useCase.execute(999L, 2))
+            .isInstanceOf(EventNotFoundException.class)
+            .hasMessage("Event not found: 999");
+
         verify(eventRepository, never()).save(any());
     }
 
@@ -80,10 +82,10 @@ class ProcessOrderUseCaseTest {
     void reservesTicketsPersistsAndReturnsConfirmation() {
         OrderResult result = useCase.execute(1L, 2);
 
-        assertEquals("evt-001", result.eventId());
-        assertEquals("Jazz Night", result.eventName());
-        assertEquals(2, result.ticketsPurchased());
-        assertEquals(498, result.remainingTickets());
+        assertThat(result.eventId()).isEqualTo("evt-001");
+        assertThat(result.eventName()).isEqualTo("Jazz Night");
+        assertThat(result.ticketsPurchased()).isEqualTo(2);
+        assertThat(result.remainingTickets()).isEqualTo(498);
         verify(eventRepository).save(event);
         verify(ticketRepository, times(2)).save(any());
         verify(notifier).send(eq("admin@ticketera.com"), contains("Jazz Night"));
@@ -94,7 +96,7 @@ class ProcessOrderUseCaseTest {
     void usesAnonymousWhenCustomerInfoIsNull() {
         OrderResult result = useCase.execute(1L, 1, null, null);
 
-        assertEquals("evt-001", result.eventId());
+        assertThat(result.eventId()).isEqualTo("evt-001");
         verify(ticketRepository).save(argThat(ticket ->
             ticket.getCustomerName().equals("anonymous")
                 && ticket.getCustomerEmail().equals("")));
@@ -105,7 +107,7 @@ class ProcessOrderUseCaseTest {
     void usesProvidedCustomerInfo() {
         OrderResult result = useCase.execute(1L, 1, "Pablo", "pablo@test.com");
 
-        assertEquals("evt-001", result.eventId());
+        assertThat(result.eventId()).isEqualTo("evt-001");
         verify(ticketRepository).save(argThat(ticket ->
             ticket.getCustomerName().equals("Pablo")
                 && ticket.getCustomerEmail().equals("pablo@test.com")));

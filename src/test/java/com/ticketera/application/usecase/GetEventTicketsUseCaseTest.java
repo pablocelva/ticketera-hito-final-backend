@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 class GetEventTicketsUseCaseTest {
@@ -33,8 +33,8 @@ class GetEventTicketsUseCaseTest {
 
         List<Ticket> result = useCase.execute(1L);
 
-        assertEquals(2, result.size());
-        assertEquals("Juan", result.get(0).getCustomerName());
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getCustomerName()).isEqualTo("Juan");
         verify(ticketRepository).findByEventId(1L);
     }
 
@@ -45,6 +45,6 @@ class GetEventTicketsUseCaseTest {
 
         List<Ticket> result = useCase.execute(1L);
 
-        assertTrue(result.isEmpty());
+        assertThat(result).isEmpty();
     }
 }

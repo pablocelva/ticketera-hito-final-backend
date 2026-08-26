@@ -6,55 +6,61 @@ import com.ticketera.domain.valueobject.TicketQuantity;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("Ticket Pool")
-public class TicketPoolTest {
+class TicketPoolTest {
+
     @Test
     @DisplayName("Should throw IllegalArgumentException when capacity is not positive")
-    public void shouldThrowWhenCapacityIsNotPositive() {
-        IllegalArgumentException ex1 = assertThrows(IllegalArgumentException.class,
-            () -> new TicketPool(0));
-        assertEquals("Capacity must be positive", ex1.getMessage());
+    void shouldThrowWhenCapacityIsNotPositive() {
+        assertThatThrownBy(() -> new TicketPool(0))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Capacity must be positive");
 
-        IllegalArgumentException ex2 = assertThrows(IllegalArgumentException.class,
-            () -> new TicketPool(-5));
-        assertEquals("Capacity must be positive", ex2.getMessage());
+        assertThatThrownBy(() -> new TicketPool(-5))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Capacity must be positive");
     }
 
     @Test
     @DisplayName("Should throw InvalidOrderException when quantity is not positive")
-    public void shouldThrowInvalidOrderWhenQuantityIsNotPositive() {
+    void shouldThrowInvalidOrderWhenQuantityIsNotPositive() {
         TicketPool pool = new TicketPool(10);
-        InvalidOrderException ex = assertThrows(InvalidOrderException.class,
-            () -> pool.reserve(new TicketQuantity(0)));
-        assertEquals("Quantity must be positive", ex.getMessage());
+
+        assertThatThrownBy(() -> pool.reserve(new TicketQuantity(0)))
+            .isInstanceOf(InvalidOrderException.class)
+            .hasMessage("Quantity must be positive");
     }
 
     @Test
     @DisplayName("Should throw SoldOutException when not enough tickets")
-    public void shouldThrowSoldOutWhenNotEnoughTickets() {
+    void shouldThrowSoldOutWhenNotEnoughTickets() {
         TicketPool pool = new TicketPool(5);
-        SoldOutException ex = assertThrows(SoldOutException.class,
-            () -> pool.reserve(new TicketQuantity(10)));
-        assertEquals("Not enough tickets available", ex.getMessage());
+
+        assertThatThrownBy(() -> pool.reserve(new TicketQuantity(10)))
+            .isInstanceOf(SoldOutException.class)
+            .hasMessage("Not enough tickets available");
     }
 
     @Test
     @DisplayName("Should reserve tickets successfully when available")
-    public void shouldReserveTicketsSuccessfully() {
+    void shouldReserveTicketsSuccessfully() {
         TicketPool pool = new TicketPool(10);
         pool.reserve(new TicketQuantity(3));
-        assertEquals(7, pool.getAvailable());
-        assertTrue(pool.hasAvailability());
+
+        assertThat(pool.getAvailable()).isEqualTo(7);
+        assertThat(pool.hasAvailability()).isTrue();
     }
 
     @Test
     @DisplayName("Should not have availability when pool is empty")
-    public void shouldNotHaveAvailabilityWhenEmpty() {
+    void shouldNotHaveAvailabilityWhenEmpty() {
         TicketPool pool = new TicketPool(1);
         pool.reserve(new TicketQuantity(1));
-        assertFalse(pool.hasAvailability());
+
+        assertThat(pool.hasAvailability()).isFalse();
     }
 
     @Test
@@ -62,35 +68,35 @@ public class TicketPoolTest {
     void reconstitutesPoolPreservingAvailableTickets() {
         TicketPool pool = new TicketPool(100, 30);
 
-        assertEquals(30, pool.getAvailable());
-        assertTrue(pool.hasAvailability());
+        assertThat(pool.getAvailable()).isEqualTo(30);
+        assertThat(pool.hasAvailability()).isTrue();
     }
 
     @Test
     @DisplayName("Rejects available greater than capacity on reconstitution")
     void rejectsAvailableGreaterThanCapacity() {
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-            () -> new TicketPool(100, 150));
-        assertEquals("Available must be between 0 and capacity", ex.getMessage());
+        assertThatThrownBy(() -> new TicketPool(100, 150))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Available must be between 0 and capacity");
     }
 
     @Test
     @DisplayName("Rejects negative available on reconstitution")
     void rejectsNegativeAvailable() {
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-            () -> new TicketPool(100, -1));
-        assertEquals("Available must be between 0 and capacity", ex.getMessage());
+        assertThatThrownBy(() -> new TicketPool(100, -1))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Available must be between 0 and capacity");
     }
 
     @Test
     @DisplayName("Rejects non-positive capacity on reconstitution")
     void rejectsNonPositiveCapacityOnReconstitution() {
-        IllegalArgumentException ex1 = assertThrows(IllegalArgumentException.class,
-            () -> new TicketPool(0, 5));
-        assertEquals("Capacity must be positive", ex1.getMessage());
+        assertThatThrownBy(() -> new TicketPool(0, 5))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Capacity must be positive");
 
-        IllegalArgumentException ex2 = assertThrows(IllegalArgumentException.class,
-            () -> new TicketPool(-10, 5));
-        assertEquals("Capacity must be positive", ex2.getMessage());
+        assertThatThrownBy(() -> new TicketPool(-10, 5))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Capacity must be positive");
     }
 }

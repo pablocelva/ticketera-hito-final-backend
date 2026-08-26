@@ -3,7 +3,8 @@ package com.ticketera.domain.valueobject;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("CityId Value Object")
 class CityIdTest {
@@ -12,15 +13,18 @@ class CityIdTest {
     @DisplayName("Creates CityId with Long value")
     void createsCityIdWithLongValue() {
         CityId id = new CityId(1L);
-        assertEquals(1L, id.value());
+
+        assertThat(id.value())
+            .as("CityId value should be 1L")
+            .isEqualTo(1L);
     }
 
     @Test
     @DisplayName("Throws when value is null")
     void throwsWhenValueIsNull() {
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-            () -> new CityId(null));
-        assertEquals("City id is required", ex.getMessage());
+        assertThatThrownBy(() -> new CityId(null))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("City id is required");
     }
 
     @Test
@@ -28,7 +32,10 @@ class CityIdTest {
     void equalsReturnsTrueForSameValue() {
         CityId a = new CityId(1L);
         CityId b = new CityId(1L);
-        assertEquals(a, b);
+
+        assertThat(a)
+            .as("Two CityIds with same value should be equal")
+            .isEqualTo(b);
     }
 
     @Test
@@ -36,21 +43,30 @@ class CityIdTest {
     void equalsReturnsFalseForDifferentValue() {
         CityId a = new CityId(1L);
         CityId b = new CityId(2L);
-        assertNotEquals(a, b);
+
+        assertThat(a)
+            .as("Two CityIds with different values should not be equal")
+            .isNotEqualTo(b);
     }
 
     @Test
     @DisplayName("Equals returns false for different type")
     void equalsReturnsFalseForDifferentType() {
         CityId a = new CityId(1L);
-        assertNotEquals(a, "not a CityId");
+
+        assertThat(a)
+            .as("CityId should not equal a String")
+            .isNotEqualTo("not a CityId");
     }
 
     @Test
     @DisplayName("Equals returns true for same reference")
     void equalsReturnsTrueForSameReference() {
         CityId a = new CityId(1L);
-        assertEquals(a, a);
+
+        assertThat(a)
+            .as("Same reference should be equal")
+            .isEqualTo(a);
     }
 
     @Test
@@ -58,6 +74,9 @@ class CityIdTest {
     void hashCodeIsConsistent() {
         CityId a = new CityId(1L);
         CityId b = new CityId(1L);
-        assertEquals(a.hashCode(), b.hashCode());
+
+        assertThat(a.hashCode())
+            .as("HashCode should be consistent for same value")
+            .isEqualTo(b.hashCode());
     }
 }

@@ -6,7 +6,7 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 ![Swagger](https://img.shields.io/badge/OpenAPI-Swagger%20UI-85EA2D?logo=swagger&logoColor=black)
-![JUnit](https://img.shields.io/badge/JUnit%205%20%2B%20Mockito-135%20tests-25A162?logo=junit5&logoColor=white)
+![JUnit](https://img.shields.io/badge/JUnit%205%20%2B%20Mockito%20%2B%20AssertJ-138%20tests-25A162?logo=junit5&logoColor=white)
 ![Coverage](https://img.shields.io/badge/cobertura-100%25-brightgreen)
 ![Bruno](https://img.shields.io/badge/contratos-Bruno%206%2F6-F6B93B)
 
@@ -82,7 +82,7 @@ Repositorios que sirven de base a este proyecto:
 
 | Dependencia | Versión | Propósito |
 |---|---|---|
-| `spring-boot-starter-test` | gestionada por Spring Boot | Incluye JUnit 5 (API, engine y params), Mockito, AssertJ y MockMvc para las siguientes fases |
+| `spring-boot-starter-test` | gestionada por Spring Boot | Incluye JUnit 5 (API, engine y params), Mockito, AssertJ y MockMvc |
 
 ### Plugins de Maven
 
@@ -950,10 +950,12 @@ El comando finaliza con código distinto de 0 si algún test falla, lo que lo ha
 
 ## Testing y Garantía de Calidad
 
-Este proyecto utiliza **JUnit 5** y **Mockito** (gestionados por el BOM de Spring Boot) para asegurar los más altos estándares de calidad. La suite combina dos niveles: **tests unitarios puros** sobre `domain` y `application` (sin contexto de Spring ni base de datos, rápidos y deterministas) y **tests de corte web** con `@WebMvcTest` + MockMvc que verifican controladores, validación y el `GlobalExceptionHandler` mockeando los casos de uso. La verificación end-to-end sobre persistencia y red reales se realiza con la colección de contratos Bruno (ver [Pruebas de contrato](#pruebas-de-contrato-bruno)).
+Este proyecto utiliza **JUnit 5**, **Mockito** y **AssertJ** (gestionados por el BOM de Spring Boot) para asegurar los más altos estándares de calidad. La suite combina dos niveles: **tests unitarios puros** sobre `domain` y `application` (sin contexto de Spring ni base de datos, rápidos y deterministas) y **tests de corte web** con `@WebMvcTest` + MockMvc que verifican controladores, validación y el `GlobalExceptionHandler` mockeando los casos de uso. La verificación end-to-end sobre persistencia y red reales se realiza con la colección de contratos Bruno (ver [Pruebas de contrato](#pruebas-de-contrato-bruno)).
 
 - **Patrón AAA Estricto**: Todos los tests están estructurados rigurosamente usando las fases Arrange, Act y Assert.
-- **Excepciones de Negocio**: Las excepciones personalizadas se verifican exhaustivamente usando `assertThrows`.
+- **AssertJ Fluent Assertions**: Se usa `assertThatThrownBy`, `assertThatCode` y `.as("descripción")` para assertions legibles y auto-documentantes.
+- **Parameterized Tests**: Se usa `@NullAndEmptySource` y `@ValueSource` para cubrir múltiples casos inválidos en un solo método.
+- **Excepciones de Negocio**: Las excepciones personalizadas se verifican exhaustivamente usando AssertJ's `assertThatThrownBy`.
 - **Cobertura 100%**: La suite garantiza 100% de cobertura de Líneas, Ramas y Métodos sobre las 30 clases analizadas por JaCoCo. Las interfaces/puertos (`application/port`) e `infrastructure` están excluidas del reporte.
 
 ### Resumen de cobertura por clase
@@ -967,10 +969,10 @@ Este proyecto utiliza **JUnit 5** y **Mockito** (gestionados por el BOM de Sprin
 | `Ticket` | 2 | Creación con datos completos, creación con cliente anonymous |
 | `TicketQuantity` | 4 | Valor válido, `quantity ≤ 0` (parameterized: 0, -1, -10) |
 | `Money` | 4 | Valor válido, `price ≤ 0` (parameterized: 0.0, -1.0, -100.0) |
-| `Email` | 5 | Normalización, `null`, blank, sin `@`, sin dominio |
-| `EventId` | 3 | Trim, `null`, blank |
+| `Email` | 6 | Normalización, null/blank/vacío (parameterized), sin `@`, sin dominio |
+| `EventId` | 4 | Trim, null/blank (parameterized) |
 | `EventStatus` | 4 | Verificar los 6 valores del enum, resolución por `valueOf()`, nombre correcto, `IllegalArgumentException` para nombre inválido |
-| `TicketId` | 4 | Valor válido, trim, `null`, blank |
+| `TicketId` | 5 | Valor válido, trim, null/blank (parameterized) |
 | `CityId` | 7 | Valor válido, `null`, equals mismo valor, equals distinto valor, equals distinto tipo, equals misma referencia, hashCode consistente |
 | `ProcessOrderUseCase` | 7 | `eventId` null/vacío, `quantity` 0/negativo, evento no encontrado, éxito con persistencia, cliente anónimo (null), cliente con nombre/email |
 | `SendBookingConfirmationUseCase` | 3 | Email null/vacío, éxito |
@@ -979,7 +981,7 @@ Este proyecto utiliza **JUnit 5** y **Mockito** (gestionados por el BOM de Sprin
 | `GetEventsUseCase` | 1 | Retorna la cartelera completa desde el repositorio |
 | `UpdateEventUseCase` | 3 | Éxito, evento no encontrado, capacidad < vendidas |
 | `DeleteEventUseCase` | 3 | Éxito, evento no encontrado, evento con ventas |
-| `GetEventTicketsUseCase` | 2 | Retorna tickets, lista vacía con `assertTrue(result.isEmpty())` |
+| `GetEventTicketsUseCase` | 2 | Retorna tickets, lista vacía con `assertThat(result).isEmpty()` |
 | `CreateCityUseCase` | 3 | Creación válida (id generado + persistencia), validación delegada al dominio |
 | `GetCitiesUseCase` | 1 | Retorna lista de ciudades |
 | `GetCityDetailsUseCase` | 2 | Ciudad encontrada, no encontrada |
@@ -991,7 +993,7 @@ Este proyecto utiliza **JUnit 5** y **Mockito** (gestionados por el BOM de Sprin
 | `JpaEventRepositoryTest` | 3 | Persistencia: crear y recuperar, reservar entradas, listar todos (excluido del reporte de cobertura) |
 | `ApiResponseTest` | 4 | OK con nombre, OK sin nombre, error, timestamp (excluido del reporte de cobertura) |
 | `GlobalExceptionHandlerTest` | 6 | Corte web MockMvc: 404 Events, 404 Cities, 422 SoldOut, 400 validación, 409 conflicto, 500 inesperado (excluido del reporte de cobertura) |
-| **Total** | **135 tests (102 unitarios + 33 de integración/web)** | **100% líneas, 100% métodos, 100% ramas** sobre las 31 clases analizadas |
+| **Total** | **138 tests (105 unitarios + 33 de integración/web)** | **100% líneas, 100% métodos, 100% ramas** sobre las 31 clases analizadas |
 
 ¹ Las interfaces/puertos (`application/port/`) y la capa `infrastructure` están excluidas del reporte JaCoCo por ser contratos sin código ejecutable y detalles técnicos respectivamente.
 
@@ -1092,7 +1094,7 @@ mvn spring-boot:run "-Dspring-boot.run.profiles=prod"       # perfil prod
 
 ```bash
 mvn clean compile                                           # compilar
-mvn test                                                    # ejecutar 135 tests unitarios
+mvn test                                                    # ejecutar 138 tests unitarios
 mvn clean test jacoco:report                                # tests + reporte de cobertura
 bru run --env local                                         # tests de contrato (requiere app levantada)
 ```

@@ -9,7 +9,8 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -31,28 +32,29 @@ class CreateEventUseCaseTest {
         Event result = useCase.execute(1L, "Jazz Night", "Gran Teatro", 500,
             "Miles Davis", date, "20:00", 25000.0, "/images/jazz.webp", true);
 
-        assertNotNull(result.getCode());
-        assertEquals("Jazz Night", result.getName());
-        assertEquals("Gran Teatro", result.getVenue());
-        assertEquals(500, result.getCapacity());
-        assertEquals(1L, result.getCityId().value());
-        assertEquals("Miles Davis", result.getArtist());
-        assertEquals(date, result.getEventDate());
-        assertEquals("20:00", result.getEventTime());
-        assertEquals(25000.0, result.getPrice().value());
-        assertEquals("/images/jazz.webp", result.getImageUrl());
-        assertTrue(result.isFeatured());
-        assertEquals(EventStatus.SCHEDULED, result.getStatus());
+        assertThat(result.getCode()).as("Event code should be generated").isNotNull();
+        assertThat(result.getName()).isEqualTo("Jazz Night");
+        assertThat(result.getVenue()).isEqualTo("Gran Teatro");
+        assertThat(result.getCapacity()).isEqualTo(500);
+        assertThat(result.getCityId().value()).isEqualTo(1L);
+        assertThat(result.getArtist()).isEqualTo("Miles Davis");
+        assertThat(result.getEventDate()).isEqualTo(date);
+        assertThat(result.getEventTime()).isEqualTo("20:00");
+        assertThat(result.getPrice().value()).isEqualTo(25000.0);
+        assertThat(result.getImageUrl()).isEqualTo("/images/jazz.webp");
+        assertThat(result.isFeatured()).isTrue();
+        assertThat(result.getStatus()).isEqualTo(EventStatus.SCHEDULED);
         verify(repository).save(any(Event.class));
     }
 
     @Test
     @DisplayName("Delegates validation to domain")
     void delegatesValidationToDomain() {
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-            () -> useCase.execute(1L, "Jazz Night", "Gran Teatro", 0,
-                "Art", LocalDateTime.now(), "20:00", 10000.0, "/img.jpg", false));
-        assertEquals("Capacity must be positive", ex.getMessage());
+        assertThatThrownBy(() -> useCase.execute(1L, "Jazz Night", "Gran Teatro", 0,
+                "Art", LocalDateTime.now(), "20:00", 10000.0, "/img.jpg", false))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Capacity must be positive");
+
         verify(repository, never()).save(any());
     }
 }

@@ -9,7 +9,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 class UpdateCityUseCaseTest {
@@ -31,7 +32,7 @@ class UpdateCityUseCaseTest {
 
         City result = useCase.execute(1L, "Lima Metropolitana");
 
-        assertEquals("Lima Metropolitana", result.getName());
+        assertThat(result.getName()).isEqualTo("Lima Metropolitana");
         verify(repository).save(city);
     }
 
@@ -40,9 +41,9 @@ class UpdateCityUseCaseTest {
     void throwsCityNotFoundWhenCityDoesNotExist() {
         when(repository.findById(999L)).thenReturn(Optional.empty());
 
-        CityNotFoundException ex = assertThrows(CityNotFoundException.class,
-            () -> useCase.execute(999L, "New Name"));
-        assertEquals("City with id '999' not found", ex.getMessage());
+        assertThatThrownBy(() -> useCase.execute(999L, "New Name"))
+            .isInstanceOf(CityNotFoundException.class)
+            .hasMessage("City with id '999' not found");
         verify(repository, never()).save(any());
     }
 
@@ -52,9 +53,9 @@ class UpdateCityUseCaseTest {
         City city = new City(1L, "LIM", "Lima");
         when(repository.findById(1L)).thenReturn(Optional.of(city));
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-            () -> useCase.execute(1L, "  "));
-        assertEquals("City name is required", ex.getMessage());
+        assertThatThrownBy(() -> useCase.execute(1L, "  "))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("City name is required");
         verify(repository, never()).save(any());
     }
 }

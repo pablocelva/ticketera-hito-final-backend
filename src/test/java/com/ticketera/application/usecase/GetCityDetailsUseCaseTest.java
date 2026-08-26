@@ -9,7 +9,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 class GetCityDetailsUseCaseTest {
@@ -31,8 +32,8 @@ class GetCityDetailsUseCaseTest {
 
         City result = useCase.execute(1L);
 
-        assertEquals(1L, result.getId().value());
-        assertEquals("Lima", result.getName());
+        assertThat(result.getId().value()).isEqualTo(1L);
+        assertThat(result.getName()).isEqualTo("Lima");
     }
 
     @Test
@@ -40,8 +41,8 @@ class GetCityDetailsUseCaseTest {
     void throwsCityNotFoundWhenMissing() {
         when(repository.findById(999L)).thenReturn(Optional.empty());
 
-        CityNotFoundException ex = assertThrows(CityNotFoundException.class,
-            () -> useCase.execute(999L));
-        assertEquals("City with id '999' not found", ex.getMessage());
+        assertThatThrownBy(() -> useCase.execute(999L))
+            .isInstanceOf(CityNotFoundException.class)
+            .hasMessage("City with id '999' not found");
     }
 }

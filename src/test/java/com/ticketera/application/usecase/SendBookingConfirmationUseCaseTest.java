@@ -2,40 +2,40 @@ package com.ticketera.application.usecase;
 
 import com.ticketera.application.port.MessageNotifier;
 import com.ticketera.domain.exception.InvalidEmailException;
-
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 @DisplayName("Send Booking Confirmation Use Case")
-public class SendBookingConfirmationUseCaseTest {
+class SendBookingConfirmationUseCaseTest {
+
     @Test
     @DisplayName("Should fail when email is null")
-    public void shouldFailWhenEmailIsNull() {
+    void shouldFailWhenEmailIsNull() {
         MessageNotifier notifierMock = mock(MessageNotifier.class);
         SendBookingConfirmationUseCase useCase = new SendBookingConfirmationUseCase(notifierMock);
 
-        InvalidEmailException ex = assertThrows(InvalidEmailException.class,
-            () -> useCase.execute(null, "Jazz Night"));
-        assertEquals("Invalid email: null", ex.getMessage());
+        assertThatThrownBy(() -> useCase.execute(null, "Jazz Night"))
+            .isInstanceOf(InvalidEmailException.class)
+            .hasMessage("Invalid email: null");
     }
 
     @Test
     @DisplayName("Should fail when email is empty")
-    public void shouldFailWhenEmailIsEmpty() {
+    void shouldFailWhenEmailIsEmpty() {
         MessageNotifier notifierMock = mock(MessageNotifier.class);
         SendBookingConfirmationUseCase useCase = new SendBookingConfirmationUseCase(notifierMock);
 
-        InvalidEmailException ex = assertThrows(InvalidEmailException.class,
-            () -> useCase.execute("", "Jazz Night"));
-        assertTrue(ex.getMessage().contains("Invalid email:"));
+        assertThatThrownBy(() -> useCase.execute("", "Jazz Night"))
+            .isInstanceOf(InvalidEmailException.class)
+            .hasMessageContaining("Invalid email:");
     }
 
     @Test
     @DisplayName("Should send confirmation successfully")
-    public void shouldSendConfirmationSuccessfully() {
+    void shouldSendConfirmationSuccessfully() {
         MessageNotifier notifierMock = mock(MessageNotifier.class);
         SendBookingConfirmationUseCase useCase = new SendBookingConfirmationUseCase(notifierMock);
 

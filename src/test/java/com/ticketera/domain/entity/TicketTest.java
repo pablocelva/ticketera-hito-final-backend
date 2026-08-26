@@ -4,7 +4,7 @@ import com.ticketera.domain.valueobject.TicketId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("Ticket")
 class TicketTest {
@@ -18,10 +18,10 @@ class TicketTest {
             "Juan Perez",
             "juan@email.com");
 
-        assertEquals("t-001", ticket.getId().value());
-        assertEquals(1L, ticket.getEventId());
-        assertEquals("Juan Perez", ticket.getCustomerName());
-        assertEquals("juan@email.com", ticket.getCustomerEmail());
+        assertThat(ticket.getId().value()).isEqualTo("t-001");
+        assertThat(ticket.getEventId()).isEqualTo(1L);
+        assertThat(ticket.getCustomerName()).isEqualTo("Juan Perez");
+        assertThat(ticket.getCustomerEmail()).isEqualTo("juan@email.com");
     }
 
     @Test
@@ -33,7 +33,11 @@ class TicketTest {
             "anonymous",
             "");
 
-        assertEquals("anonymous", ticket.getCustomerName());
-        assertEquals("", ticket.getCustomerEmail());
+        assertThat(ticket.getCustomerName())
+            .as("Anonymous customer should have name 'anonymous'")
+            .isEqualTo("anonymous");
+        assertThat(ticket.getCustomerEmail())
+            .as("Anonymous customer should have empty email")
+            .isEmpty();
     }
 }
