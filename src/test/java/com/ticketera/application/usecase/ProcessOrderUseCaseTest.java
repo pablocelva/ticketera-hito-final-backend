@@ -29,7 +29,10 @@ class ProcessOrderUseCaseTest {
         useCase = new ProcessOrderUseCase(eventRepository, ticketRepository, notifier);
         event = Event.reconstitute(
             1L, new com.ticketera.domain.valueobject.EventId("evt-001"),
-            "Jazz Night", "Gran Teatro", 500, 500);
+            new com.ticketera.domain.valueobject.CityId(1L),
+            "Jazz Night", "Gran Teatro", 500, 500,
+            "Miles Davis", java.time.LocalDateTime.now(), "20:00",
+            25000.0, false, "SCHEDULED", "/img.jpg");
         when(eventRepository.findById(1L))
             .thenReturn(Optional.of(event));
     }

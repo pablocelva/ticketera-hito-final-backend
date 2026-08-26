@@ -7,12 +7,16 @@ import com.ticketera.domain.valueobject.TicketQuantity;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDateTime;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @DisplayName("Event")
 public class EventTest {
     private Event newEvent() {
-        return new Event("evt-001", "Jazz Night", "Jazz Club", 500);
+        return new Event("evt-001", "Jazz Night", "Jazz Club", 500,
+            "Miles Davis", LocalDateTime.of(2026, 12, 1, 20, 0), "20:00",
+            25000.0, "/images/jazz.webp", true);
     }
 
     @Test
@@ -24,6 +28,13 @@ public class EventTest {
         assertEquals("Jazz Club", event.getVenue());
         assertEquals(500, event.getCapacity());
         assertEquals(0, event.getTicketSold());
+        assertEquals("Miles Davis", event.getArtist());
+        assertEquals(LocalDateTime.of(2026, 12, 1, 20, 0), event.getEventDate());
+        assertEquals("20:00", event.getEventTime());
+        assertEquals(25000.0, event.getPrice().value());
+        assertEquals("/images/jazz.webp", event.getImageUrl());
+        assertTrue(event.isFeatured());
+        assertEquals("SCHEDULED", event.getStatus());
     }
 
     @Test
@@ -35,7 +46,8 @@ public class EventTest {
     @Test
     @DisplayName("Should return false when event is sold out")
     public void shouldReturnFalseWhenEventIsSoldOut() {
-        Event event = new Event("evt-002", "Full House", "Arena", 1);
+        Event event = new Event("evt-002", "Full House", "Arena", 1,
+            "Artist", LocalDateTime.now(), "21:00", 10000.0, "/img.jpg", false);
         event.reserveTickets(new TicketQuantity(1));
         assertFalse(event.hasAvailability());
     }
@@ -87,10 +99,18 @@ public class EventTest {
     @Test
     @DisplayName("Reconstitutes event preserving availability")
     void reconstitutesEventPreservingAvailability() {
-        Event event = Event.reconstitute(1L, new EventId("evt-1"), "Jazz Night", "Teatro", 100, 30);
+        Event event = Event.reconstitute(1L, new EventId("evt-1"),
+            new com.ticketera.domain.valueobject.CityId(1L),
+            "Jazz Night", "Teatro", 100, 30,
+            "Miles Davis", LocalDateTime.of(2026, 12, 1, 20, 0), "20:00",
+            25000.0, true, "ON_SALE", "/images/jazz.webp");
 
         assertEquals(30, event.getAvailableTickets());
         assertEquals(70, event.getTicketSold());
+        assertEquals("Miles Davis", event.getArtist());
+        assertEquals(25000.0, event.getPrice().value());
+        assertTrue(event.isFeatured());
+        assertEquals("ON_SALE", event.getStatus());
 
         event.reserveTickets(new TicketQuantity(10));
         assertEquals(20, event.getAvailableTickets());
@@ -100,10 +120,15 @@ public class EventTest {
     @DisplayName("Should update event details successfully")
     void updatesEventDetails() {
         Event event = newEvent();
-        event.updateDetails("Rock Night", "Estadio", 1000);
+        event.updateDetails("Rock Night", "Estadio", 1000,
+            "AC/DC", LocalDateTime.of(2027, 1, 15, 21, 0), "21:00",
+            50000.0, "/images/rock.webp", true);
         assertEquals("Rock Night", event.getName());
         assertEquals("Estadio", event.getVenue());
         assertEquals(1000, event.getCapacity());
+        assertEquals("AC/DC", event.getArtist());
+        assertEquals(LocalDateTime.of(2027, 1, 15, 21, 0), event.getEventDate());
+        assertEquals(50000.0, event.getPrice().value());
     }
 
     @Test
@@ -112,7 +137,8 @@ public class EventTest {
         Event event = newEvent();
         event.reserveTickets(new TicketQuantity(100));
         InvalidOrderException ex = assertThrows(InvalidOrderException.class,
-            () -> event.updateDetails("Small", "Venue", 50));
+            () -> event.updateDetails("Small", "Venue", 50,
+                "Art", LocalDateTime.now(), "20:00", 10000.0, "/img.jpg", false));
         assertTrue(ex.getMessage().contains("cannot be less than sold tickets"));
     }
 
@@ -138,7 +164,8 @@ public class EventTest {
     void reconstitutesEventWithCityId() {
         Event event = Event.reconstitute(1L, new EventId("evt-1"),
             new com.ticketera.domain.valueobject.CityId(10L),
-            "Rock", "Stadium", 200, 100);
+            "Rock", "Stadium", 200, 100,
+            "Bands", LocalDateTime.now(), "20:00", 30000.0, false, "SCHEDULED", "/img.jpg");
         assertEquals(10L, event.getCityId().value());
         assertEquals(200, event.getCapacity());
         assertEquals(100, event.getAvailableTickets());

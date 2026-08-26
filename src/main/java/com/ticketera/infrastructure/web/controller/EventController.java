@@ -78,7 +78,10 @@ public class EventController {
     })
     @PostMapping
     public ResponseEntity<EventResponse> createEvent(@Valid @RequestBody CreateEventRequest request) {
-        var event = createEventUseCase.execute(request.cityId(), request.name(), request.venue(), request.capacity());
+        var event = createEventUseCase.execute(
+            request.cityId(), request.name(), request.venue(), request.capacity(),
+            request.artist(), request.eventDate(), request.eventTime(),
+            request.price(), request.imageUrl(), request.featured());
         return ResponseEntity.status(HttpStatus.CREATED).body(EventResponse.fromDomain(event));
     }
 
@@ -92,7 +95,9 @@ public class EventController {
     @PutMapping("/{id}")
     public EventResponse updateEvent(@PathVariable Long id, @Valid @RequestBody UpdateEventRequest request) {
         return EventResponse.fromDomain(
-            updateEventUseCase.execute(id, request.name(), request.venue(), request.capacity()));
+            updateEventUseCase.execute(id, request.name(), request.venue(), request.capacity(),
+                request.artist(), request.eventDate(), request.eventTime(),
+                request.price(), request.imageUrl(), request.featured()));
     }
 
     @Operation(summary = "Eliminar evento", description = "Elimina un evento que no tenga ventas")

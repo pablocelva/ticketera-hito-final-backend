@@ -3,6 +3,7 @@ package com.ticketera.infrastructure.persistence;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
@@ -14,6 +15,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.ActiveProfiles;
 
 import com.ticketera.domain.entity.Event;
+import com.ticketera.domain.valueobject.CityId;
 import com.ticketera.domain.valueobject.EventId;
 import com.ticketera.domain.valueobject.TicketQuantity;
 
@@ -39,8 +41,11 @@ class JpaEventRepositoryTest {
     }
 
     @Test
-    void persistsAndRecoversAggregateWithInventory() {
-        Event event = Event.reconstitute(null, new EventId("evt-test-1"), "Jazz Night", "Teatro", 100, 90);
+    void persistsAndRecoversAggregateWithAllFields() {
+        Event event = Event.reconstitute(null, new EventId("evt-test-1"),
+            new CityId(1L), "Jazz Night", "Teatro", 100, 90,
+            "Miles Davis", LocalDateTime.of(2026, 12, 1, 20, 0), "20:00",
+            25000.0, true, "ON_SALE", "/images/jazz.webp");
 
         repository.save(event);
         Event recovered = repository.findByCode("evt-test-1").orElseThrow();
@@ -49,11 +54,20 @@ class JpaEventRepositoryTest {
         assertEquals(100, recovered.getCapacity());
         assertEquals(90, recovered.getAvailableTickets());
         assertEquals(10, recovered.getTicketSold());
+        assertEquals("Miles Davis", recovered.getArtist());
+        assertEquals(25000.0, recovered.getPrice().value());
+        assertTrue(recovered.isFeatured());
+        assertEquals("ON_SALE", recovered.getStatus());
+        assertEquals("/images/jazz.webp", recovered.getImageUrl());
+        assertEquals(LocalDateTime.of(2026, 12, 1, 20, 0), recovered.getEventDate());
+        assertEquals("20:00", recovered.getEventTime());
     }
 
     @Test
     void persistsReservationsMadeOnAggregate() {
-        Event event = Event.reconstitute(null, new EventId("evt-test-2"), "Rock Fest", "Estadio", 1000, 500);
+        Event event = Event.reconstitute(null, new EventId("evt-test-2"),
+            new CityId(1L), "Rock Fest", "Estadio", 1000, 500,
+            "AC/DC", LocalDateTime.now(), "21:00", 50000.0, false, "SCHEDULED", "/img.jpg");
 
         event.reserveTickets(new TicketQuantity(200));
         repository.save(event);
@@ -65,8 +79,12 @@ class JpaEventRepositoryTest {
 
     @Test
     void listsAllPersistedEvents() {
-        repository.save(Event.reconstitute(null, new EventId("evt-a"), "A", "V1", 10, 10));
-        repository.save(Event.reconstitute(null, new EventId("evt-b"), "B", "V2", 20, 15));
+        repository.save(Event.reconstitute(null, new EventId("evt-a"),
+            new CityId(1L), "A", "V1", 10, 10,
+            "ArtA", LocalDateTime.now(), "20:00", 10000.0, false, "SCHEDULED", "/img.jpg"));
+        repository.save(Event.reconstitute(null, new EventId("evt-b"),
+            new CityId(1L), "B", "V2", 20, 15,
+            "ArtB", LocalDateTime.now(), "21:00", 20000.0, true, "ON_SALE", "/img.jpg"));
 
         List<Event> all = repository.findAll();
 

@@ -2,7 +2,10 @@ package com.ticketera.infrastructure.web.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+
+import java.time.LocalDateTime;
 
 @Schema(description = "Peticion de actualizacion de evento")
 public record UpdateEventRequest(
@@ -17,6 +20,26 @@ public record UpdateEventRequest(
 
     @Schema(description = "Capacidad total de entradas", example = "600")
     @Positive(message = "Capacity must be positive")
-    int capacity
+    int capacity,
+
+    @Schema(description = "Nombre del artista o banda", example = "Miles Davis")
+    String artist,
+
+    @Schema(description = "Fecha y hora del evento", example = "2026-12-01T20:00:00")
+    @NotNull(message = "Event date is required")
+    LocalDateTime eventDate,
+
+    @Schema(description = "Hora del evento", example = "20:00")
+    String eventTime,
+
+    @Schema(description = "Precio de la entrada", example = "25000.0")
+    @Positive(message = "Price must be positive")
+    double price,
+
+    @Schema(description = "URL de la imagen del evento", example = "/images/jazz.webp")
+    String imageUrl,
+
+    @Schema(description = "Evento destacado en la cartelera", example = "false")
+    boolean featured
 ) {
 }

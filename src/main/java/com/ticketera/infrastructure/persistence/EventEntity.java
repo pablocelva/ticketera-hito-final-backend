@@ -10,6 +10,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "events")
@@ -37,10 +38,52 @@ public class EventEntity {
     @Column(name = "available_tickets", nullable = false)
     private int availableTickets;
 
+    @Column(name = "artist")
+    private String artist;
+
+    @Column(name = "event_date")
+    private LocalDateTime eventDate;
+
+    @Column(name = "event_time", length = 10)
+    private String eventTime;
+
+    @Column(name = "price")
+    private Double price;
+
+    @Column(name = "image_url")
+    private String imageUrl;
+
+    @Column(name = "featured", nullable = false)
+    private boolean featured;
+
+    @Column(name = "status", length = 20)
+    private String status;
+
     protected EventEntity() {
     }
 
-    private EventEntity(Long id, String code, Long cityId, String name, String venue, int capacity, int availableTickets) {
+    public static EventEntity fromDomain(Event event) {
+        return new EventEntity(
+            event.getDbId(),
+            event.getCode().value(),
+            event.getCityId().value(),
+            event.getName(),
+            event.getVenue(),
+            event.getCapacity(),
+            event.getAvailableTickets(),
+            event.getArtist(),
+            event.getEventDate(),
+            event.getEventTime(),
+            event.getPrice().value(),
+            event.getImageUrl(),
+            event.isFeatured(),
+            event.getStatus());
+    }
+
+    private EventEntity(Long id, String code, Long cityId, String name, String venue,
+                        int capacity, int availableTickets, String artist,
+                        LocalDateTime eventDate, String eventTime, Double price,
+                        String imageUrl, boolean featured, String status) {
         this.id = id;
         this.code = code;
         this.cityId = cityId;
@@ -48,26 +91,21 @@ public class EventEntity {
         this.venue = venue;
         this.capacity = capacity;
         this.availableTickets = availableTickets;
-    }
-
-    public static EventEntity fromDomain(Event event) {
-        Long dbId = event.getDbId();
-        return new EventEntity(
-            dbId,
-            event.getCode().value(),
-            event.getCityId().value(),
-            event.getName(),
-            event.getVenue(),
-            event.getCapacity(),
-            event.getAvailableTickets());
+        this.artist = artist;
+        this.eventDate = eventDate;
+        this.eventTime = eventTime;
+        this.price = price;
+        this.imageUrl = imageUrl;
+        this.featured = featured;
+        this.status = status;
     }
 
     public Event toDomain() {
         return Event.reconstitute(
-            id,
-            new EventId(code),
-            new CityId(cityId),
-            name, venue, capacity, availableTickets);
+            id, new EventId(code), new CityId(cityId),
+            name, venue, capacity, availableTickets,
+            artist, eventDate, eventTime,
+            price, featured, status, imageUrl);
     }
 
     public Long getId() {

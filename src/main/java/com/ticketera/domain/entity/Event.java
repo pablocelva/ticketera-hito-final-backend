@@ -2,7 +2,10 @@ package com.ticketera.domain.entity;
 
 import com.ticketera.domain.valueobject.CityId;
 import com.ticketera.domain.valueobject.EventId;
+import com.ticketera.domain.valueobject.Money;
 import com.ticketera.domain.valueobject.TicketQuantity;
+
+import java.time.LocalDateTime;
 
 public class Event {
     private Long id;
@@ -13,32 +16,61 @@ public class Event {
     private int capacity;
     private final TicketPool ticketPool;
 
-    public Event(String code, String name, String venue, int capacity) {
+    private String artist;
+    private LocalDateTime eventDate;
+    private String eventTime;
+    private Money price;
+    private String imageUrl;
+    private boolean featured;
+    private String status;
+
+    public Event(String code, String name, String venue, int capacity,
+                 String artist, LocalDateTime eventDate, String eventTime,
+                 double price, String imageUrl, boolean featured) {
         this.code = new EventId(code);
         this.cityId = new CityId(1L);
         this.name = name;
         this.venue = venue;
         this.capacity = capacity;
         this.ticketPool = new TicketPool(capacity);
+        this.artist = artist;
+        this.eventDate = eventDate;
+        this.eventTime = eventTime;
+        this.price = new Money(price);
+        this.imageUrl = imageUrl;
+        this.featured = featured;
+        this.status = "SCHEDULED";
     }
 
-    public static Event reconstitute(Long id, EventId code, String name, String venue, int capacity, int availableTickets) {
-        return new Event(id, code, name, venue, capacity, availableTickets, 1L);
+    public static Event reconstitute(Long id, EventId code, CityId cityId,
+                                     String name, String venue, int capacity, int availableTickets,
+                                     String artist, LocalDateTime eventDate, String eventTime,
+                                     double price, boolean featured, String status, String imageUrl) {
+        return new Event(id, code, cityId, name, venue, capacity, availableTickets,
+            artist, eventDate, eventTime, price, featured, status, imageUrl);
     }
 
-    public static Event reconstitute(Long id, EventId code, CityId cityId, String name, String venue, int capacity, int availableTickets) {
-        return new Event(id, code, name, venue, capacity, availableTickets, cityId.value());
-    }
-
-    private Event(Long id, EventId code, String name, String venue, int capacity, int availableTickets, Long cityId) {
+    private Event(Long id, EventId code, CityId cityId,
+                  String name, String venue, int capacity, int availableTickets,
+                  String artist, LocalDateTime eventDate, String eventTime,
+                  double price, boolean featured, String status, String imageUrl) {
         this.id = id;
         this.code = code;
-        this.cityId = new CityId(cityId);
+        this.cityId = cityId;
         this.name = name;
         this.venue = venue;
         this.capacity = capacity;
         this.ticketPool = new TicketPool(capacity, availableTickets);
+        this.artist = artist;
+        this.eventDate = eventDate;
+        this.eventTime = eventTime;
+        this.price = new Money(price);
+        this.imageUrl = imageUrl;
+        this.featured = featured;
+        this.status = status;
     }
+
+    // --- Getters existentes ---
 
     public Long getDbId() {
         return id;
@@ -92,7 +124,41 @@ public class Event {
         ticketPool.reserve(quantity);
     }
 
-    public void updateDetails(String name, String venue, int capacity) {
+    // --- Getters nuevos ---
+
+    public String getArtist() {
+        return artist;
+    }
+
+    public LocalDateTime getEventDate() {
+        return eventDate;
+    }
+
+    public String getEventTime() {
+        return eventTime;
+    }
+
+    public Money getPrice() {
+        return price;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public boolean isFeatured() {
+        return featured;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    // --- Update detallado ---
+
+    public void updateDetails(String name, String venue, int capacity,
+                              String artist, LocalDateTime eventDate, String eventTime,
+                              double price, String imageUrl, boolean featured) {
         if (capacity < getTicketSold()) {
             throw new com.ticketera.domain.exception.InvalidOrderException(
                 "New capacity (" + capacity + ") cannot be less than sold tickets (" + getTicketSold() + ")");
@@ -100,5 +166,11 @@ public class Event {
         this.name = name;
         this.venue = venue;
         this.capacity = capacity;
+        this.artist = artist;
+        this.eventDate = eventDate;
+        this.eventTime = eventTime;
+        this.price = new Money(price);
+        this.imageUrl = imageUrl;
+        this.featured = featured;
     }
 }

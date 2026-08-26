@@ -408,6 +408,13 @@ erDiagram
         varchar venue "Lugar"
         int capacity "Capacidad total"
         int available_tickets "Disponibles"
+        varchar artist "Artista o banda"
+        datetime event_date "Fecha y hora"
+        varchar event_time "Hora legible"
+        double price "Precio de entrada"
+        varchar image_url "URL de imagen"
+        boolean featured "Destacado"
+        varchar status "Estado del evento"
     }
     TICKETS {
         varchar id PK "UUID de la entrada"
@@ -425,7 +432,7 @@ Glosario compartido entre el equipo de negocio y el equipo técnico. Cada térmi
 
 | Término | Definición |
 |---|---|
-| `Event` | Reunión pública con una sede y una capacidad definidas. Raíz del agregado del contexto Ticketing. |
+| `Event` | Reunión pública con artista, sede, fecha, precio y capacidad definidos. Raíz del agregado del contexto Ticketing. Incluye estado (`SCHEDULED`, `ON_SALE`, `SOLD_OUT`, `LIVE`, `FINISHED`, `CANCELED`) y bandera `featured` para destacados en la cartelera. |
 | `Ticket` | El derecho a asistir a un `Event`. Una unidad del inventario del `Event`. |
 | `TicketPool` | El inventario de entradas disponibles de un `Event`. Evita la sobreventa al respetar la capacidad. |
 | `Order` | La solicitud de un cliente de comprar una cantidad de entradas para un `Event`. |
@@ -448,8 +455,8 @@ La capa web expone rutas semánticas bajo `/api/v1` con los verbos HTTP correspo
 |---|---|---|---|---|
 | `GET` | `/api/v1/events` | Cartelera completa | 200 | — |
 | `GET` | `/api/v1/events/{id}` | Detalle de un evento | 200 | 404 |
-| `POST` | `/api/v1/events` | Crea un evento (body: `cityId`, `name`, `venue`, `capacity`) | 201 | 400 |
-| `PUT` | `/api/v1/events/{id}` | Actualiza nombre, lugar y capacidad | 200 | 400, 404 |
+| `POST` | `/api/v1/events` | Crea un evento (body: `cityId`, `name`, `venue`, `capacity`, `artist`, `eventDate`, `eventTime`, `price`, `imageUrl`, `featured`) | 201 | 400 |
+| `PUT` | `/api/v1/events/{id}` | Actualiza todos los campos del evento | 200 | 400, 404 |
 | `DELETE` | `/api/v1/events/{id}` | Elimina un evento sin ventas | 204 | 404, 409 |
 | `GET` | `/api/v1/events/{id}/tickets` | Entradas vendidas de un evento | 200 | 404 |
 | `POST` | `/api/v1/orders` | Compra entradas (body: `eventId`, `quantity`, `customerName?`, `customerEmail?`) y confirma la reserva por email si se indica | 201 | 400, 404, 422 |
@@ -494,7 +501,13 @@ Request:
   "cityId": 1,
   "name": "Jazz Night",
   "venue": "Gran Teatro Lima",
-  "capacity": 500
+  "capacity": 500,
+  "artist": "Miles Davis Quartet",
+  "eventDate": "2026-12-15T20:00:00",
+  "eventTime": "20:00",
+  "price": 25000.0,
+  "imageUrl": "/images/jazz.webp",
+  "featured": true
 }
 ```
 
@@ -504,6 +517,12 @@ Request:
 | `name` | `String` | Sí | `@NotBlank` |
 | `venue` | `String` | Sí | `@NotBlank` |
 | `capacity` | `int` | Sí | `@Positive` |
+| `artist` | `String` | No | — |
+| `eventDate` | `LocalDateTime` | Sí | `@NotNull` |
+| `eventTime` | `String` | No | — |
+| `price` | `double` | Sí | `@Positive` |
+| `imageUrl` | `String` | No | — |
+| `featured` | `boolean` | No | default `false` |
 
 Response `201`:
 ```json
@@ -515,7 +534,14 @@ Response `201`:
   "venue": "Gran Teatro Lima",
   "capacity": 500,
   "availableTickets": 500,
-  "ticketsSold": 0
+  "ticketsSold": 0,
+  "artist": "Miles Davis Quartet",
+  "eventDate": "2026-12-15T20:00:00",
+  "eventTime": "20:00",
+  "price": 25000.0,
+  "imageUrl": "/images/jazz.webp",
+  "featured": true,
+  "status": "SCHEDULED"
 }
 ```
 
@@ -534,7 +560,14 @@ Response `200`:
     "venue": "Gran Teatro Lima",
     "capacity": 500,
     "availableTickets": 500,
-    "ticketsSold": 0
+    "ticketsSold": 0,
+    "artist": "Miles Davis Quartet",
+    "eventDate": "2026-12-15T20:00:00",
+    "eventTime": "20:00",
+    "price": 25000.0,
+    "imageUrl": "/images/jazz.webp",
+    "featured": true,
+    "status": "SCHEDULED"
   }
 ]
 ```
@@ -553,7 +586,14 @@ Response `200`:
   "venue": "Gran Teatro Lima",
   "capacity": 500,
   "availableTickets": 500,
-  "ticketsSold": 0
+  "ticketsSold": 0,
+  "artist": "Miles Davis Quartet",
+  "eventDate": "2026-12-15T20:00:00",
+  "eventTime": "20:00",
+  "price": 25000.0,
+  "imageUrl": "/images/jazz.webp",
+  "featured": true,
+  "status": "SCHEDULED"
 }
 ```
 
@@ -575,7 +615,13 @@ Request:
 {
   "name": "Jazz Night Updated",
   "venue": "Teatro Nacional",
-  "capacity": 600
+  "capacity": 600,
+  "artist": "Miles Davis Quartet",
+  "eventDate": "2027-01-20T21:00:00",
+  "eventTime": "21:00",
+  "price": 30000.0,
+  "imageUrl": "/images/jazz-v2.webp",
+  "featured": true
 }
 ```
 
@@ -584,6 +630,12 @@ Request:
 | `name` | `String` | Sí | `@NotBlank` |
 | `venue` | `String` | Sí | `@NotBlank` |
 | `capacity` | `int` | Sí | `@Positive` |
+| `artist` | `String` | No | — |
+| `eventDate` | `LocalDateTime` | Sí | `@NotNull` |
+| `eventTime` | `String` | No | — |
+| `price` | `double` | Sí | `@Positive` |
+| `imageUrl` | `String` | No | — |
+| `featured` | `boolean` | No | — |
 
 > **Nota:** No se puede cambiar el `cityId` ni el `code`. La capacidad nueva no puede ser menor que las entradas ya vendidas.
 
@@ -812,14 +864,16 @@ Las credenciales coinciden con las del `application-dev.yml`, de modo que el mic
 | Esquema | `ddl-auto: update` (crea/actualiza tablas) | `ddl-auto: validate` (solo valida contra las entidades) |
 | SQL en consola | Sí (`show-sql: true`) | No |
 | Swagger UI / api-docs | Habilitados | Bloqueados (propiedades + `@Profile("dev")`) |
-| Datos semilla | `DevDataSeeder` inserta 3 ciudades y 2 eventos si las tablas están vacías | No corre (sin seed en producción) |
+| Datos semilla | `DevDataSeeder` inserta 3 ciudades y 4 eventos enriquecidos si las tablas están vacías | No corre (sin seed en producción) |
 
 Datos semilla del perfil dev:
 
-| Ciudad | Evento | Venue | Capacidad | Disponibles |
-|---|---|---|---|---|
-| `LIM` Lima | `evt-jazz-001` Jazz Night | Gran Teatro Lima | 500 | 500 |
-| `LIM` Lima | `evt-rock-002` Rock Fest | Estadio Nacional | 5000 | 3800 (1200 reservadas) |
+| Ciudad | Evento | Artista | Venue | Precio | Capacidad | Disponibles | Featured |
+|---|---|---|---|---|---|---|---|
+| `LIM` Lima | `evt-jazz-001` Jazz Night | Miles Davis Quartet | Gran Teatro Lima | $25.000 | 500 | 500 | Sí |
+| `LIM` Lima | `evt-rock-002` Rock Fest | AC/DC | Estadio Nacional | $55.000 | 5000 | 3800 (1200 reservadas) | No |
+| `MAD` Madrid | `evt-opera-003` La Traviata | Placido Domingo | Teatro Real Madrid | $120.000 | 800 | 0 (agotado) | Sí |
+| `BOG` Bogota | `evt-fest-004` Bogota Music Festival | Various Artists | Parque Simon Bolivar | $80.000 | 10000 | 10000 | No |
 
 > **Nota sobre `.env` y seguridad:** el perfil prod resuelve `TICKETERA_DB_URL`, `TICKETERA_DB_USERNAME` y `TICKETERA_DB_PASSWORD` desde variables de entorno del sistema o desde el archivo `.env` (importado vía `spring.config.import`). `.env` está ignorado por git; solo se commitea la plantilla `.env.example`. En este proyecto académico la plantilla contiene los valores reales porque ya son públicos en `compose.yaml`; en un entorno empresarial llevaría placeholders y los secretos residirían en un gestor especializado (Vault, secrets del orquestador, etc.).
 
@@ -902,7 +956,7 @@ Este proyecto utiliza **JUnit 5** y **Mockito** (gestionados por el BOM de Sprin
 
 | Clase | Tests | Cobertura |
 |---|---|---|
-| `Event` | 14 | `hasAvailability()` true + false, `reserveTickets` éxito/sold out/cantidad cero/negativa, cálculo de disponibles/vendidas, reconstitución (con y sin cityId), `updateDetails` éxito/capacidad < vendidas, `hasSoldTickets` true + false, `setCityId` |
+| `Event` | 14 | `hasAvailability()` true + false, `reserveTickets` éxito/sold out/cantidad cero/negativa, cálculo de disponibles/vendidas, reconstitución completa (artist, date, price, featured, status), `updateDetails` éxito/capacidad < vendidas con todos los campos, `hasSoldTickets` true + false, `setCityId` |
 | `TicketPool` | 9 | `capacity ≤ 0`, `quantity ≤ 0`, `quantity > available`, éxito, pool vacío, reconstitución válida e inválida (disponibles fuera de rango, capacidad no positiva) |
 | `Customer` | 5 | Creación válida (incluye `getEmail()`), `id` null/blank, `name` null/blank |
 | `City` | 8 | Creación válida, `code` null/blank, `name` null/blank, rename éxito/null/blank |
@@ -981,7 +1035,7 @@ En este perfil el esquema solo se valida (`ddl-auto: validate`) y Swagger queda 
 ### Verificar la persistencia en PostgreSQL
 
 ```bash
-docker exec -it pg-ticketera psql -U user_ticketera -d ticketera_db -c "SELECT id, name, capacity, available_tickets FROM events;"
+docker exec -it pg-ticketera psql -U user_ticketera -d ticketera_db -c "SELECT id, name, artist, price, capacity, available_tickets, status, featured FROM events;"
 ```
 
 Tras registrar una compra, `available_tickets` debe reflejar el descuento correspondiente.
@@ -1018,7 +1072,7 @@ docker compose up -d                                        # levantar PostgreSQ
 docker compose ps                                           # verificar estado healthy
 docker compose stop                                         # detener conservando datos
 docker compose down -v                                      # detener y borrar datos
-docker exec -it pg-ticketera psql -U user_ticketera -d ticketera_db -c "SELECT id, name, capacity, available_tickets FROM events;"
+docker exec -it pg-ticketera psql -U user_ticketera -d ticketera_db -c "SELECT id, name, artist, price, capacity, available_tickets, status, featured FROM events;"
 ```
 
 ### Aplicación

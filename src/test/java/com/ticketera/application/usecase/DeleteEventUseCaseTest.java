@@ -28,8 +28,9 @@ class DeleteEventUseCaseTest {
     @Test
     @DisplayName("Deletes event without sold tickets")
     void deletesEventWithoutSoldTickets() {
-        Event event = Event.reconstitute(1L, new EventId("evt-1"), "Jazz", "Teatro", 100, 100);
-        when(repository.findById(1L)).thenReturn(Optional.of(event));
+        Event event = Event.reconstitute(1L, new EventId("evt-1"),
+        new com.ticketera.domain.valueobject.CityId(1L), "Jazz", "Teatro", 100, 100,
+        "Artist", java.time.LocalDateTime.now(), "20:00", 10000.0, false, "SCHEDULED", "/img.jpg");        when(repository.findById(1L)).thenReturn(Optional.of(event));
 
         useCase.execute(1L);
 
@@ -49,8 +50,9 @@ class DeleteEventUseCaseTest {
     @Test
     @DisplayName("Throws when event has sold tickets")
     void throwsWhenEventHasSoldTickets() {
-        Event event = Event.reconstitute(1L, new EventId("evt-1"), "Jazz", "Teatro", 100, 80);
-        when(repository.findById(1L)).thenReturn(Optional.of(event));
+        Event event = Event.reconstitute(1L, new EventId("evt-1"),
+        new com.ticketera.domain.valueobject.CityId(1L), "Jazz", "Teatro", 100, 80,
+        "Artist", java.time.LocalDateTime.now(), "20:00", 10000.0, false, "SCHEDULED", "/img.jpg");        when(repository.findById(1L)).thenReturn(Optional.of(event));
 
         InvalidOrderException ex = assertThrows(InvalidOrderException.class,
             () -> useCase.execute(1L));

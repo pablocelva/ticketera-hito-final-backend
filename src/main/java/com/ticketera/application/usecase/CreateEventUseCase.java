@@ -3,6 +3,7 @@ package com.ticketera.application.usecase;
 import com.ticketera.domain.entity.Event;
 import com.ticketera.domain.repository.EventRepository;
 
+import java.time.LocalDateTime;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -14,8 +15,11 @@ public class CreateEventUseCase {
         this.repository = repository;
     }
 
-    public Event execute(Long cityId, String name, String venue, int capacity) {
-        Event event = new Event(generateEventCode(name), name, venue, capacity);
+    public Event execute(Long cityId, String name, String venue, int capacity,
+                         String artist, LocalDateTime eventDate, String eventTime,
+                         double price, String imageUrl, boolean featured) {
+        Event event = new Event(generateEventCode(name), name, venue, capacity,
+            artist, eventDate, eventTime, price, imageUrl, featured);
         event.setCityId(cityId);
         Long id = repository.save(event);
         event.setDbId(id);

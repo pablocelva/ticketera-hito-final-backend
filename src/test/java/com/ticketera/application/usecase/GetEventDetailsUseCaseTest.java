@@ -27,8 +27,9 @@ class GetEventDetailsUseCaseTest {
     @Test
     @DisplayName("Returns event when found")
     void returnsEventWhenFound() {
-        Event event = Event.reconstitute(1L, new EventId("evt-1"), "Jazz Night", "Teatro", 100, 90);
-        when(repository.findById(1L)).thenReturn(Optional.of(event));
+        Event event = Event.reconstitute(1L, new EventId("evt-1"),
+        new com.ticketera.domain.valueobject.CityId(1L), "Jazz Night", "Teatro", 100, 90,
+        "Artist", java.time.LocalDateTime.now(), "20:00", 25000.0, false, "SCHEDULED", "/img.jpg");        when(repository.findById(1L)).thenReturn(Optional.of(event));
 
         assertEquals(event, useCase.execute(1L));
     }
