@@ -6,7 +6,7 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 ![Swagger](https://img.shields.io/badge/OpenAPI-Swagger%20UI-85EA2D?logo=swagger&logoColor=black)
-![JUnit](https://img.shields.io/badge/JUnit%205%20%2B%20Mockito-131%20tests-25A162?logo=junit5&logoColor=white)
+![JUnit](https://img.shields.io/badge/JUnit%205%20%2B%20Mockito-135%20tests-25A162?logo=junit5&logoColor=white)
 ![Coverage](https://img.shields.io/badge/cobertura-100%25-brightgreen)
 ![Bruno](https://img.shields.io/badge/contratos-Bruno%206%2F6-F6B93B)
 
@@ -18,6 +18,7 @@ Repositorios que sirven de base a este proyecto:
 
 - **Hito 1** (núcleo inicial de la ticketera): [hito1-ticketera](https://github.com/pablocelva/hito1-ticketera)
 - **Hito 3** (refactor DDD / Clean-Hexagonal): [hito3-backend-domain-driven-design](https://github.com/pablocelva/hito3-backend-domain-driven-design)
+- **Hito 4** (refactor con Spring Boot y Swagger): [hito1-ticketera](https://github.com/pablocelva/hito4-backend-spring-boot)
 
 ## Índice
 
@@ -92,7 +93,7 @@ Repositorios que sirven de base a este proyecto:
 | `jacoco-maven-plugin` | 0.8.15 | Instrumenta el código y genera reportes de cobertura (instrucciones, ramas, métodos, líneas). Excluye `com/ticketera/infrastructure/**` y la clase bootstrap `TicketeraApplication` |
 | `jacoco-console-reporter` | 1.3.2 | Imprime un resumen de cobertura directamente en la consola |
 
-> **Nota sobre cobertura:** la capa `infrastructure` (detalles técnicos: adaptador de persistencia JPA y notificador por email), los contratos de `domain/repository` (interfaces puras sin lógica) y la clase bootstrap `TicketeraApplication` quedan **excluidos** del reporte de cobertura. Esto se configura con la propiedad `sonar.coverage.exclusions` (usada por el console-reporter) y con `<excludes>` en `jacoco-maven-plugin` (usada por el reporte HTML). La cobertura se mide sobre `domain` (entidades, value objects, excepciones) y `application` (casos de uso).
+> **Nota sobre cobertura:** la capa `infrastructure` (detalles técnicos: adaptador de persistencia JPA y notificador por email), los contratos de `domain/repository` (interfaces puras sin lógica) y la clase bootstrap `TicketeraApplication` quedan **excluidos** del reporte de cobertura. Esto se configura con la propiedad `sonar.coverage.exclusions` (usada por el console-reporter) y con `<excludes>` en `jacoco-maven-plugin` (usada por el reporte HTML). La cobertura se mide sobre `domain` (entidades, value objects, excepciones) y `application` (casos de uso). Los enums simples como `EventStatus` se marcan como 100% cubiertos automáticamente ya que no contienen lógica ejecutable; su cobertura depende de las clases que los referencian.
 
 ## Arquitectura
 
@@ -164,6 +165,7 @@ hito4-backend-spring-boot/
     │   │       ├── CityId.java
     │   │       ├── Email.java
     │   │       ├── EventId.java
+    │   │       ├── EventStatus.java
     │   │       ├── Money.java
     │   │       ├── TicketId.java
     │   │       └── TicketQuantity.java
@@ -234,6 +236,7 @@ hito4-backend-spring-boot/
         │       ├── CityIdTest.java
         │       ├── EmailTest.java
         │       ├── EventIdTest.java
+        │       ├── EventStatusTest.java
         │       ├── MoneyTest.java
         │       ├── TicketIdTest.java
         │       └── TicketQuantityTest.java
@@ -265,7 +268,7 @@ hito4-backend-spring-boot/
 |---|---|
 | `ApplicationConfig.java` | Clase `@Configuration` que actúa como *composition root*: registra los catorce casos de uso como beans (`@Bean`), inyectándoles los adaptadores de infraestructura. Mantiene `domain` y `application` libres de anotaciones de framework. |
 | `OpenApiConfig.java` | Bean `OpenAPI` con la metadata de la documentación. Anotado con `@Profile("dev")`: fuera del perfil dev ni siquiera se registra en el contexto. |
-| `DevDataSeeder.java` | `CommandLineRunner` acotado al perfil `dev`: siembra tres ciudades (`LIM` Lima, `BOG` Bogotá, `MAD` Madrid) y dos eventos de ejemplo (Jazz Night y Rock Fest) solo si las tablas están vacías. |
+| `DevDataSeeder.java` | `CommandLineRunner` acotado al perfil `dev`: siembra tres ciudades (`LIM` Lima, `BOG` Bogotá, `MAD` Madrid) y cuatro eventos enriquecidos (Jazz Night, Rock Fest, La Traviata, Bogota Music Festival) con artist, date, price, imageUrl, featured y status si las tablas están vacías. |
 
 **Recursos de configuración e infraestructura local:**
 
@@ -281,7 +284,7 @@ hito4-backend-spring-boot/
 
 | Archivo | Responsabilidad |
 |---|---|
-| `Event.java` | Aggregate Root del contexto Ticketing. Identificado por un `EventId` (String code) y un `Long id` (PK auto-generado), vinculado a una `CityId`. Contiene nombre, venue, capacidad y delega el control de inventario a su `TicketPool`. Expone `hasAvailability()`, `getAvailableTickets()`, `getTicketSold()`, `hasSoldTickets()`, `reserveTickets(TicketQuantity)` y `updateDetails(...)` como puntos de entrada para modificar el estado. Incluye la fábrica estática `reconstitute(...)` para reconstruir el agregado desde la base de datos. |
+| `Event.java` | Aggregate Root del contexto Ticketing. Identificado por un `EventId` (String code) y un `Long id` (PK auto-generado), vinculado a una `CityId`. Contiene nombre, venue, capacidad, artista, fecha/hora del evento, precio (`Money`), URL de imagen, bandera `featured` y estado (`EventStatus`). Delega el control de inventario a su `TicketPool`. Expone `hasAvailability()`, `getAvailableTickets()`, `getTicketSold()`, `hasSoldTickets()`, `reserveTickets(TicketQuantity)` y `updateDetails(...)` como puntos de entrada para modificar el estado. Incluye la fábrica estática `reconstitute(...)` para reconstruir el agregado desde la base de datos. |
 | `Ticket.java` | Entidad que representa una entrada vendida, identificada por un `TicketId` (UUID) y vinculada a un `eventId` (Long). Almacena nombre y email del cliente. |
 | `TicketPool.java` | Entidad interna que gestiona el stock de entradas disponibles. Valida que la capacidad sea positiva y que haya stock suficiente antes de reservar, evitando la sobreventa. Su constructor de reconstitución `(capacidad, disponibles)` valida que las disponibles estén entre 0 y la capacidad. |
 | `Customer.java` | Entidad que representa a la persona que compra entradas, identificada por un `id` único y un email válido (Value Object `Email`). |
@@ -297,12 +300,13 @@ hito4-backend-spring-boot/
 | `TicketQuantity.java` | Cantidad de entradas de una orden. Rechaza valores ≤ 0 (`InvalidOrderException`). |
 | `Money.java` | Precio de una entrada. Rechaza valores ≤ 0 (`InvalidOrderException`). |
 | `Email.java` | Email normalizado (trim + minúsculas). Rechaza `null`, vacíos o formatos inválidos (`InvalidEmailException`). |
+| `EventStatus.java` | Enum que representa los estados posibles de un evento: `SCHEDULED`, `ON_SALE`, `SOLD_OUT`, `LIVE`, `FINISHED`, `CANCELED`. Se persiste como `String` en la base de datos. |
 
 **Casos de uso:**
 
 | Archivo | Responsabilidad |
 |---|---|
-| `ProcessOrderUseCase.java` | Procesa una orden: construye los Value Objects, busca el evento, reserva las entradas, **persiste el cambio con `save()`**, **crea una entrada en la tabla `tickets` por cada unidad comprada**, notifica al administrador y retorna un `OrderResult`. Depende de `EventRepository`, `TicketRepository` y `MessageNotifier`. |
+| `ProcessOrderUseCase.java` | Procesa una orden: construye los Value Objects, busca el evento, reserva las entradas, **persiste el cambio con `save()`**, **crea una entrada en la tabla `tickets` por cada unidad comprada** con precio unitario, total y estado, notifica al administrador y retorna un `OrderResult`. Depende de `EventRepository`, `TicketRepository` y `MessageNotifier`. |
 | `CreateEventUseCase.java` | Crea un nuevo evento generando su identificador (`UUID`), asignando la `cityId` proporcionada, delegando las validaciones al dominio, persistiéndolo y devolviendo el `Long id` generado. Depende de `EventRepository`. |
 | `GetEventsUseCase.java` | Consulta la cartelera completa delegando en `EventRepository.findAll()`. |
 | `GetEventDetailsUseCase.java` | Consulta un evento por identificador (`Long`) y lanza `EventNotFoundException` cuando no existe. |
@@ -315,7 +319,7 @@ hito4-backend-spring-boot/
 | `UpdateCityUseCase.java` | Actualiza el nombre de una ciudad existente (el código es inmutable). Depende de `CityRepository`. |
 | `DeleteCityUseCase.java` | Elimina una ciudad. Depende de `CityRepository`. |
 | `SendBookingConfirmationUseCase.java` | Envía una confirmación de reserva al cliente. Depende de `MessageNotifier` (inyectado por constructor). |
-| `OrderResult.java` | Record de aplicación que transporta el resultado de una orden hacia la capa de presentación. |
+| `OrderResult.java` | Record de aplicación que transporta el resultado de una orden hacia la capa de presentación. Contiene `id`, `eventId` (EventId), `eventName`, `customerName`, `customerEmail` (Email), `ticketsPurchased`, `remainingTickets`, `unitPrice` (Money), `totalPrice` (Money), `status` (OrderStatus) y `createdAt`. |
 
 **Puertos de Aplicación:**
 
@@ -355,11 +359,11 @@ hito4-backend-spring-boot/
 
 | Archivo | Responsabilidad |
 |---|---|
-| `CreateEventRequest.java` | Petición de creación de evento con `cityId`, validaciones `@NotBlank`/`@Positive`. |
-| `UpdateEventRequest.java` | Petición de actualización de evento con `name`, `venue`, `capacity`. |
-| `TicketOrderRequest.java` | Petición de compra (`eventId`, `quantity`, `customerName?`, `customerEmail?` con `@Email`). |
-| `EventResponse.java` | Respuesta de cartelera/detalle con `id`, `code`, `cityId`, `availableTickets` y `ticketsSold`. Se construye con `fromDomain(Event)`. |
-| `OrderResponse.java` | Confirmación de compra construida desde `OrderResult`. |
+| `CreateEventRequest.java` | Petición de creación de evento con `cityId`, `name`, `venue`, `capacity`, `artist`, `eventDate`, `eventTime`, `price`, `imageUrl`, `featured`. Validaciones `@NotBlank`/`@Positive`/`@NotNull`. |
+| `UpdateEventRequest.java` | Petición de actualización de evento con `name`, `venue`, `capacity`, `artist`, `eventDate`, `eventTime`, `price`, `imageUrl`, `featured`. |
+| `TicketOrderRequest.java` | Petición de compra (`eventId`, `quantity`, `customerName?`, `customerEmail?` con `@Email`, `unitPrice?`). |
+| `EventResponse.java` | Respuesta de cartelera/detalle con `id`, `code`, `cityId`, `name`, `venue`, `capacity`, `availableTickets`, `ticketsSold`, `artist`, `eventDate`, `eventTime`, `price`, `imageUrl`, `featured`, `status`. Se construye con `fromDomain(Event)`. |
+| `OrderResponse.java` | Confirmación de compra construida desde `OrderResult`. Contiene `id`, `eventId`, `eventName`, `customerName`, `customerEmail`, `ticketsPurchased`, `remainingTickets`, `unitPrice`, `totalPrice`, `status`, `createdAt`. |
 | `TicketResponseDto.java` | Respuesta de una entrada vendida con `id`, `eventId`, `customerName`, `customerEmail`. |
 | `CityRequestDto.java` | Petición de creación de ciudad (`code`, `name`). |
 | `CityResponseDto.java` | Respuesta de ciudad con `id`, `code` y `name`. |
@@ -372,7 +376,7 @@ hito4-backend-spring-boot/
 
 | Archivo | Responsabilidad |
 |---|---|
-| `EventEntity.java` | Modelo de persistencia JPA (`@Entity`, tabla `events`) con columnas `id` (Long, auto-generado), `code`, `city_id`, `name`, `venue`, `capacity` y `available_tickets`. Mapea desde/hacia el agregado `Event` mediante `fromDomain()`/`toDomain()`. |
+| `EventEntity.java` | Modelo de persistencia JPA (`@Entity`, tabla `events`) con columnas `id` (Long, auto-generado), `code`, `city_id`, `name`, `venue`, `capacity`, `available_tickets`, `artist`, `event_date`, `event_time`, `price`, `image_url`, `featured`, `status`. Mapea desde/hacia el agregado `Event` mediante `fromDomain()`/`toDomain()`. |
 | `TicketEntity.java` | Modelo de persistencia JPA (`@Entity`, tabla `tickets`) con columnas `id` (String UUID), `event_id` (Long), `customer_name`, `customer_email`. Mapea desde/hacia la entidad `Ticket`. |
 | `CityEntity.java` | Modelo de persistencia JPA (`@Entity`, tabla `cities`) con columnas `id` (Long, auto-generado), `code` (String único), `name`. Mapea desde/hacia la entidad `City`. |
 | `EventJpaRepository.java` | Interfaz que hereda de `JpaRepository<EventEntity, Long>` (Spring Data). Genera las operaciones CRUD de forma automática. |
@@ -965,6 +969,7 @@ Este proyecto utiliza **JUnit 5** y **Mockito** (gestionados por el BOM de Sprin
 | `Money` | 4 | Valor válido, `price ≤ 0` (parameterized: 0.0, -1.0, -100.0) |
 | `Email` | 5 | Normalización, `null`, blank, sin `@`, sin dominio |
 | `EventId` | 3 | Trim, `null`, blank |
+| `EventStatus` | 4 | Verificar los 6 valores del enum, resolución por `valueOf()`, nombre correcto, `IllegalArgumentException` para nombre inválido |
 | `TicketId` | 4 | Valor válido, trim, `null`, blank |
 | `CityId` | 7 | Valor válido, `null`, equals mismo valor, equals distinto valor, equals distinto tipo, equals misma referencia, hashCode consistente |
 | `ProcessOrderUseCase` | 7 | `eventId` null/vacío, `quantity` 0/negativo, evento no encontrado, éxito con persistencia, cliente anónimo (null), cliente con nombre/email |
@@ -986,7 +991,7 @@ Este proyecto utiliza **JUnit 5** y **Mockito** (gestionados por el BOM de Sprin
 | `JpaEventRepositoryTest` | 3 | Persistencia: crear y recuperar, reservar entradas, listar todos (excluido del reporte de cobertura) |
 | `ApiResponseTest` | 4 | OK con nombre, OK sin nombre, error, timestamp (excluido del reporte de cobertura) |
 | `GlobalExceptionHandlerTest` | 6 | Corte web MockMvc: 404 Events, 404 Cities, 422 SoldOut, 400 validación, 409 conflicto, 500 inesperado (excluido del reporte de cobertura) |
-| **Total** | **131 tests (98 unitarios + 33 de integración/web)** | **100% líneas, 100% métodos, 100% ramas** sobre las 30 clases analizadas |
+| **Total** | **135 tests (102 unitarios + 33 de integración/web)** | **100% líneas, 100% métodos, 100% ramas** sobre las 31 clases analizadas |
 
 ¹ Las interfaces/puertos (`application/port/`) y la capa `infrastructure` están excluidas del reporte JaCoCo por ser contratos sin código ejecutable y detalles técnicos respectivamente.
 
@@ -1087,7 +1092,7 @@ mvn spring-boot:run "-Dspring-boot.run.profiles=prod"       # perfil prod
 
 ```bash
 mvn clean compile                                           # compilar
-mvn test                                                    # ejecutar 131 tests unitarios
+mvn test                                                    # ejecutar 135 tests unitarios
 mvn clean test jacoco:report                                # tests + reporte de cobertura
 bru run --env local                                         # tests de contrato (requiere app levantada)
 ```
