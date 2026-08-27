@@ -1,18 +1,21 @@
-# Ticketera - Microservicio de Venta de Entradas (Hito 4)
+# Ticketera - Microservicio de Venta de Entradas (Hito Final)
 
 ![Java 17](https://img.shields.io/badge/Java-17-orange?logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.7-6DB33F?logo=spring&logoColor=white)
 ![Maven](https://img.shields.io/badge/Maven-Build-C71A36?logo=apachemaven&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
+![Security](https://img.shields.io/badge/Spring%20Security-HTTP%20Basic-6DB33F?logo=springsecurity&logoColor=white)
 ![Swagger](https://img.shields.io/badge/OpenAPI-Swagger%20UI-85EA2D?logo=swagger&logoColor=black)
-![JUnit](https://img.shields.io/badge/JUnit%205%20%2B%20Mockito%20%2B%20AssertJ-148%20tests-25A162?logo=junit5&logoColor=white)
+![JUnit](https://img.shields.io/badge/JUnit%205%20%2B%20Mockito%20%2B%20AssertJ-158%20tests-25A162?logo=junit5&logoColor=white)
 ![Coverage](https://img.shields.io/badge/cobertura-100%25-brightgreen)
 ![Bruno](https://img.shields.io/badge/contratos-Bruno%206%2F6-F6B93B)
 
 Ticketera es un sistema de venta de entradas para eventos independientes. Este repositorio evoluciona el **Core de Dominio Puro** construido en el Hito 3 hacia un **microservicio con Spring Boot, PostgreSQL y Docker**, manteniendo el núcleo (`domain` y `application`) completamente aislado de frameworks, siguiendo los principios de **Clean Architecture**, **Domain-Driven Design (DDD)** y **Hexagonal Architecture (Ports & Adapters)**.
 
-**Estado del Hito 4:** migración a Spring Boot, adaptador de persistencia JPA/PostgreSQL, capa web REST con manejo global de errores, configuración por perfiles (dev/prod) con Swagger aislado, Docker Compose con PostgreSQL y colección de pruebas de contrato con Bruno.
+**Estado del Hito 4:** migración a Spring Boot, adaptador de persistencia JPA/PostgreSQL, capa web REST con manejo global de errores, configuración por perfiles (dev/prod) con Swagger aislado, Docker Compose con PostgreSQL, Dockerfile multi-stage seguro y colección de pruebas de contrato con Bruno.
+
+**Seguridad:** HTTP Basic auth para mutaciones admin, CORS centralizado via `CorsConfigurationSource`, passwords con BCrypt, sesiones stateless, Dockerfile con usuario no-root.
 
 Repositorios que sirven de base a este proyecto:
 
@@ -76,6 +79,7 @@ Repositorios que sirven de base a este proyecto:
 | `spring-boot-starter-validation` | gestionada por Spring Boot | Validación declarativa con Jakarta Bean Validation (`@Valid`, `@NotBlank`, etc.) |
 | `spring-boot-starter-data-jpa` | gestionada por Spring Boot | Persistencia con Spring Data JPA e Hibernate |
 | `postgresql` | gestionada por Spring Boot | Driver JDBC de PostgreSQL (scope `runtime`) |
+| `spring-boot-starter-security` | gestionada por Spring Boot | Autenticación HTTP Basic para mutaciones admin |
 | `springdoc-openapi-starter-webmvc-ui` | 2.8.9 | Especificación OpenAPI 3 y Swagger UI interactiva |
 
 ### Dependencias de testing (scope: test)
@@ -83,6 +87,7 @@ Repositorios que sirven de base a este proyecto:
 | Dependencia | Versión | Propósito |
 |---|---|---|
 | `spring-boot-starter-test` | gestionada por Spring Boot | Incluye JUnit 5 (API, engine y params), Mockito, AssertJ y MockMvc |
+| `h2` | gestionada por Spring Boot | Base de datos en memoria para tests de integración de Security (scope `test`) |
 
 ### Plugins de Maven
 
@@ -109,6 +114,7 @@ Las interacciones externas se modelan como interfaces inyectadas por constructor
 
 ```
 hito4-backend-spring-boot/
+├── Dockerfile
 ├── pom.xml
 ├── compose.yaml
 ├── .env.example
@@ -173,7 +179,8 @@ hito4-backend-spring-boot/
     │   └── infrastructure/
     │       ├── config/
     │       │   ├── ApplicationConfig.java
-    │       │   └── DevDataSeeder.java
+    │       │   ├── DevDataSeeder.java
+    │       │   └── SecurityConfig.java
     │       ├── notification/
     │       │   └── EmailNotificationService.java
     │       ├── persistence/
@@ -243,6 +250,8 @@ hito4-backend-spring-boot/
         │       ├── TicketIdTest.java
         │       └── TicketQuantityTest.java
         └── infrastructure/
+            ├── config/
+            │   └── SecurityConfigTest.java
             ├── persistence/
             │   └── JpaEventRepositoryTest.java
             └── web/
@@ -271,16 +280,17 @@ hito4-backend-spring-boot/
 | `ApplicationConfig.java` | Clase `@Configuration` que actúa como *composition root*: registra los catorce casos de uso como beans (`@Bean`), inyectándoles los adaptadores de infraestructura. Mantiene `domain` y `application` libres de anotaciones de framework. |
 | `OpenApiConfig.java` | Bean `OpenAPI` con la metadata de la documentación. Anotado con `@Profile("dev")`: fuera del perfil dev ni siquiera se registra en el contexto. |
 | `DevDataSeeder.java` | `CommandLineRunner` acotado al perfil `dev`: siembra tres ciudades (`LIM` Lima, `BOG` Bogotá, `MAD` Madrid) y cuatro eventos enriquecidos (Jazz Night, Rock Fest, La Traviata, Bogota Music Festival) con artist, date, price, imageUrl, featured y status si las tablas están vacías. |
+| `SecurityConfig.java` | `@Configuration` con `@EnableWebSecurity`: define un `SecurityFilterChain` con HTTP Basic, CSRF deshabilitado (API stateless), sesiones `STATELESS` y CORS centralizado via `CorsConfigurationSource`. Lectura pública (GET events/cities/tickets, POST orders, healthcheck, Swagger en dev). Mutaciones admin protegidas (POST/PUT/DELETE events y cities). Credenciales admin en `InMemoryUserDetailsManager` con BCrypt. |
 
 **Recursos de configuración e infraestructura local:**
 
 | Archivo | Responsabilidad |
 |---|---|
 | `src/main/resources/application.yml` | Configuración común: puerto `8081`, nombre de la aplicación y perfil por defecto (`dev`). |
-| `src/main/resources/application-dev.yml` | Perfil desarrollo: credenciales locales de Docker, `ddl-auto: update`, SQL en consola y Swagger habilitado. |
-| `src/main/resources/application-prod.yml` | Perfil producción: credenciales externalizadas (`TICKETERA_DB_URL/USERNAME/PASSWORD`), `ddl-auto: validate`, SQL silencioso y Swagger deshabilitado. Importa opcionalmente el archivo `.env`. |
-| `compose.yaml` | Docker Compose que provisiona el contenedor PostgreSQL 16 usado en desarrollo. |
-| `.env.example` | Plantilla commiteada con las variables que espera el perfil prod; se copia a `.env` (ignorado por git) para ejecutar en modo producción. |
+| `src/main/resources/application-dev.yml` | Perfil desarrollo: credenciales locales de Docker, `ddl-auto: update`, SQL en consola, Swagger habilitado, CORS permitido desde `localhost:5173` y credenciales admin (`admin`/`admin`). |
+| `src/main/resources/application-prod.yml` | Perfil producción: credenciales externalizadas (`TICKETERA_DB_URL/USERNAME/PASSWORD`, `ADMIN_USERNAME/PASSWORD`, `CORS_ALLOWED_ORIGINS`), `ddl-auto: validate`, SQL silencioso y Swagger deshabilitado. Importa opcionalmente el archivo `.env`. |
+| `compose.yaml` | Docker Compose con dos servicios: `db` (PostgreSQL 16 para desarrollo) y `api` (build multi-stage desde Dockerfile, perfil prod, dependencia de DB healthy). |
+| `.env.example` | Plantilla commiteada con todas las variables: BD (`TICKETERA_DB_*`), admin (`ADMIN_USERNAME/PASSWORD`) y CORS (`CORS_ALLOWED_ORIGINS`). Se copia a `.env` (ignorado por git). |
 
 **Entidades (Aggregate Roots):**
 
@@ -463,20 +473,20 @@ Glosario compartido entre el equipo de negocio y el equipo técnico. Cada térmi
 
 La capa web expone rutas semánticas bajo `/api/v1` con los verbos HTTP correspondientes. Los controladores son delgados: validan la entrada de forma perimetral con Jakarta Bean Validation y delegan la lógica en los casos de uso; nunca acceden al dominio directamente. El servicio escucha en el puerto **8081**, por lo que la URL base es `http://localhost:8081`.
 
-| Método | Ruta | Descripción | Éxito | Errores |
-|---|---|---|---|---|
-| `GET` | `/api/v1/events` | Cartelera completa | 200 | — |
-| `GET` | `/api/v1/events/{id}` | Detalle de un evento | 200 | 404 |
-| `POST` | `/api/v1/events` | Crea un evento (body: `cityId`, `name`, `venue`, `capacity`, `artist`, `eventDate`, `eventTime`, `price`, `imageUrl`, `featured`) | 201 | 400 |
-| `PUT` | `/api/v1/events/{id}` | Actualiza todos los campos del evento | 200 | 400, 404 |
-| `DELETE` | `/api/v1/events/{id}` | Elimina un evento sin ventas | 204 | 404, 409 |
-| `GET` | `/api/v1/events/{id}/tickets` | Entradas vendidas de un evento | 200 | 404 |
-| `POST` | `/api/v1/orders` | Compra entradas (body: `eventId`, `quantity`, `customerName?`, `customerEmail?`) y confirma la reserva por email si se indica | 201 | 400, 404, 422 |
-| `GET` | `/api/v1/cities` | Lista de ciudades | 200 | — |
-| `GET` | `/api/v1/cities/{id}` | Detalle de una ciudad | 200 | 404 |
-| `POST` | `/api/v1/cities` | Crea una ciudad (body: `id`, `name`) | 201 | 400 |
-| `PUT` | `/api/v1/cities/{id}` | Actualiza nombre de ciudad | 200 | 404 |
-| `DELETE` | `/api/v1/cities/{id}` | Elimina una ciudad | 204 | 404 |
+| Método | Ruta | Auth | Descripción | Éxito | Errores |
+|---|---|---|---|---|---|
+| `GET` | `/api/v1/events` | público | Cartelera completa | 200 | — |
+| `GET` | `/api/v1/events/{id}` | público | Detalle de un evento | 200 | 404 |
+| `POST` | `/api/v1/events` | admin (Basic) | Crea un evento | 201 | 400, 401 |
+| `PUT` | `/api/v1/events/{id}` | admin (Basic) | Actualiza todos los campos del evento | 200 | 400, 401, 404 |
+| `DELETE` | `/api/v1/events/{id}` | admin (Basic) | Elimina un evento sin ventas | 204 | 401, 404, 409 |
+| `GET` | `/api/v1/events/{id}/tickets` | público | Entradas vendidas de un evento | 200 | 404 |
+| `POST` | `/api/v1/orders` | público | Compra entradas y confirma la reserva | 201 | 400, 404, 422 |
+| `GET` | `/api/v1/cities` | público | Lista de ciudades | 200 | — |
+| `GET` | `/api/v1/cities/{id}` | público | Detalle de una ciudad | 200 | 404 |
+| `POST` | `/api/v1/cities` | admin (Basic) | Crea una ciudad | 201 | 400, 401 |
+| `PUT` | `/api/v1/cities/{id}` | admin (Basic) | Actualiza nombre de ciudad | 200 | 401, 404 |
+| `DELETE` | `/api/v1/cities/{id}` | admin (Basic) | Elimina una ciudad | 204 | 401, 404 |
 
 ### Manejo global de errores
 
@@ -862,18 +872,29 @@ Resultado verificado: con perfil `dev` la consola es plenamente operativa; con p
 
 ## Infraestructura Docker
 
-`compose.yaml` provisiona la base de datos de desarrollo:
+`compose.yaml` define dos servicios:
 
-| Aspecto | Valor |
-|---|---|
-| Imagen | `postgres:16-alpine` |
-| Contenedor | `pg-ticketera` |
-| Puerto expuesto | `5433` → `5432` |
-| Base de datos / usuario / contraseña | `ticketera_db` / `user_ticketera` / `pass_ticketera` |
-| Volumen | `postgres_data` (persistencia entre reinicios) |
-| Healthcheck | `pg_isready` cada 5 s |
+| Servicio | Imagen | Puerto | Descripción |
+|---|---|---|---|
+| `db` | `postgres:16-alpine` | `5433` → `5432` | Base de datos de desarrollo con healthcheck (`pg_isready`) |
+| `api` | Build multi-stage (`Dockerfile`) | `8081` | Microservicio en perfil prod, depends_on `db` healthy, usuario no-root |
 
-Las credenciales coinciden con las del `application-dev.yml`, de modo que el microservicio conecta sin pasos adicionales una vez el contenedor está healthy.
+### Dockerfile (multi-stage)
+
+| Etapa | Imagen base | Contenido |
+|---|---|---|
+| Build | `maven:3.9-eclipse-temurin-17` | Compila el jar con Maven (sin tests) |
+| Runtime | `eclipse-temurin:17-jre-alpine` | JRE mínimo + usuario `appuser` (no-root) |
+
+### Credenciales
+
+| Variable | Desarrollo (default) | Producción |
+|---|---|---|
+| `TICKETERA_DB_USERNAME` | `user_ticketera` | Variable de entorno requerida |
+| `TICKETERA_DB_PASSWORD` | `pass_ticketera` | Variable de entorno requerida |
+| `ADMIN_USERNAME` | `admin` | Variable de entorno requerida |
+| `ADMIN_PASSWORD` | `admin` | Variable de entorno requerida |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Variable de entorno requerida |
 
 ## Perfiles de ejecución
 
@@ -881,9 +902,11 @@ Las credenciales coinciden con las del `application-dev.yml`, de modo que el mic
 |---|---|---|
 | Activación | Automática (`spring.profiles.default: dev`) | `-Dspring-boot.run.profiles=prod` |
 | Credenciales BD | Fijas en `application-dev.yml` | Externalizadas en variables `TICKETERA_DB_*` (entorno o archivo `.env`) |
+| Credenciales admin | `admin`/`admin` (defaults) | Externalizadas en variables `ADMIN_USERNAME/PASSWORD` |
+| CORS | `http://localhost:5173` (default) | Externalizado en `CORS_ALLOWED_ORIGINS` |
 | Esquema | `ddl-auto: update` (crea/actualiza tablas) | `ddl-auto: validate` (solo valida contra las entidades) |
 | SQL en consola | Sí (`show-sql: true`) | No |
-| Swagger UI / api-docs | Habilitados | Bloqueados (propiedades + `@Profile("dev")`) |
+| Swagger UI / api-docs | Habilitados | Bloqueados (propiedades + SecurityConfig) |
 | Datos semilla | `DevDataSeeder` inserta 3 ciudades y 4 eventos enriquecidos si las tablas están vacías | No corre (sin seed en producción) |
 
 Datos semilla del perfil dev:
@@ -895,20 +918,24 @@ Datos semilla del perfil dev:
 | `MAD` Madrid | `evt-opera-003` La Traviata | Placido Domingo | Teatro Real Madrid | $120.000 | 800 | 0 (agotado) | Sí | `SOLD_OUT` |
 | `BOG` Bogota | `evt-fest-004` Bogota Music Festival | Various Artists | Parque Simon Bolivar | $80.000 | 10000 | 10000 | No | `SCHEDULED` |
 
-> **Nota sobre `.env` y seguridad:** el perfil prod resuelve `TICKETERA_DB_URL`, `TICKETERA_DB_USERNAME` y `TICKETERA_DB_PASSWORD` desde variables de entorno del sistema o desde el archivo `.env` (importado vía `spring.config.import`). `.env` está ignorado por git; solo se commitea la plantilla `.env.example`. En este proyecto académico la plantilla contiene los valores reales porque ya son públicos en `compose.yaml`; en un entorno empresarial llevaría placeholders y los secretos residirían en un gestor especializado (Vault, secrets del orquestador, etc.).
+> **Nota sobre `.env` y seguridad:** el perfil prod resuelve todas sus credenciales desde variables de entorno del sistema o desde el archivo `.env` (importado vía `spring.config.import`). El perfil prod no tiene defaults — si falta alguna variable, la app no arranca. `.env` está ignorado por git; solo se commitea la plantilla `.env.example`. La autenticación HTTP Basic protege las mutaciones admin (POST/PUT/DELETE events y cities). El CORS restringe los orígenes permitidos. Las passwords se almacenan con BCrypt en el `InMemoryUserDetailsManager`.
 
 ### Verificación del aislamiento (receta del evaluador)
 
 Con Docker y la base de datos levantados:
 
 ```powershell
-# 1) Perfil dev: Swagger visible
+# 1) Perfil dev: Swagger visible, mutaciones requieren admin
 mvn spring-boot:run
 #    -> http://localhost:8081/swagger-ui.html opera con normalidad
+#    -> POST /api/v1/events sin credenciales → 401
+#    -> POST /api/v1/events con admin:admin → 201
 
 # 2) Perfil prod: Swagger bloqueado, API operativa (crear .env solo la primera vez)
 Copy-Item .env.example .env
 mvn spring-boot:run "-Dspring-boot.run.profiles=prod"
+#    -> POST /api/v1/events con admin:admin → 201
+#    -> /swagger-ui.html → bloqueado
 ```
 
 | URL con perfil prod activo | Resultado esperado |
@@ -916,6 +943,8 @@ mvn spring-boot:run "-Dspring-boot.run.profiles=prod"
 | `/api/v1/events` | 200 con la cartelera |
 | `/swagger-ui.html` | Bloqueada (error; sin consola interactiva) |
 | `/v3/api-docs` | Bloqueada (sin especificación expuesta) |
+| `POST /api/v1/events` sin auth | 401 Unauthorized |
+| `POST /api/v1/events` con auth | 201 (body válido) |
 
 ## Pruebas de contrato (Bruno)
 
@@ -924,15 +953,15 @@ La colección [`bruno/ticketera-api`](bruno/ticketera-api) verifica los contrato
 | # | Request | Verifica |
 |---|---|---|
 | 01 | `GET /api/v1/events` | 200 y cuerpo tipo array |
-| 02 | `POST /api/v1/events` | 201 con el evento creado y su stock completo |
-| 03 | `POST /api/v1/orders` (2 entradas, Jazz Night) | 201 e inventario descontado (500 → 498) |
+| 02 | `POST /api/v1/events` (auth: basic admin) | 201 con el evento creado y su stock completo |
+| 03 | `POST /api/v1/orders` (2 entradas, evento creado) | 201 e inventario descontado |
 | 04 | `POST /api/v1/orders` (cantidad mayor al stock) | 422 con JSON unificado |
 | 05 | `POST /api/v1/orders` (`eventId` inexistente) | 404 con JSON unificado |
 | 06 | `POST /api/v1/orders` (`quantity: 0`) | 400 por validación perimetral |
 
 ### Ejecución de la colección
 
-Requisitos previos: base de datos levantada (`docker compose up -d`) y microservicio corriendo en perfil dev.
+Requisitos previos: base de datos levantada (`docker compose up -d`) y microservicio corriendo en perfil dev. Las variables `adminUsername` y `adminPassword` están definidas en `environments/local.bru`.
 
 **CLI (recomendada):** requiere Node.js. Instalar el cliente una única vez:
 
@@ -972,7 +1001,7 @@ Este proyecto utiliza **JUnit 5**, **Mockito** y **AssertJ** (gestionados por el
 - **AssertJ Fluent Assertions**: Se usa `assertThatThrownBy`, `assertThatCode` y `.as("descripción")` para assertions legibles y auto-documentantes.
 - **Parameterized Tests**: Se usa `@NullAndEmptySource` y `@ValueSource` para cubrir múltiples casos inválidos en un solo método.
 - **Excepciones de Negocio**: Las excepciones personalizadas se verifican exhaustivamente usando AssertJ's `assertThatThrownBy`.
-- **Cobertura 100%**: La suite garantiza 100% de cobertura de Líneas, Ramas y Métodos sobre las 30 clases analizadas por JaCoCo. Las interfaces/puertos (`application/port`) e `infrastructure` están excluidas del reporte.
+- **Cobertura 100%**: La suite garantiza 100% de cobertura de Líneas, Ramas y Métodos sobre las 32 clases analizadas por JaCoCo. Las interfaces/puertos (`application/port`) e `infrastructure` están excluidas del reporte.
 
 ### Resumen de cobertura por clase
 
@@ -1010,7 +1039,8 @@ Este proyecto utiliza **JUnit 5**, **Mockito** y **AssertJ** (gestionados por el
 | `JpaEventRepositoryTest` | 3 | Persistencia: crear y recuperar, reservar entradas, listar todos (excluido del reporte de cobertura) |
 | `ApiResponseTest` | 4 | OK con nombre, OK sin nombre, error, timestamp (excluido del reporte de cobertura) |
 | `GlobalExceptionHandlerTest` | 6 | Corte web MockMvc: 404 Events, 404 Cities, 422 SoldOut, 400 validación, 409 conflicto, 500 inesperado (excluido del reporte de cobertura) |
-| **Total** | **148 tests (115 unitarios + 33 de integración/web)** | **100% líneas, 100% métodos, 100% ramas** sobre las 32 clases analizadas |
+| `SecurityConfigTest` | 10 | Integración Spring Security: GET público (events, cities, healthcheck, orders), POST sin auth → 401, POST con wrong pass → 401, POST con credenciales correctas → 400, PUT/DELETE sin auth → 401 (excluido del reporte de cobertura) |
+| **Total** | **158 tests (115 unitarios + 43 de integración/web)** | **100% líneas, 100% métodos, 100% ramas** sobre las 32 clases analizadas |
 
 ¹ Las interfaces/puertos (`application/port/`) y la capa `infrastructure` están excluidas del reporte JaCoCo por ser contratos sin código ejecutable y detalles técnicos respectivamente.
 
@@ -1111,7 +1141,7 @@ mvn spring-boot:run "-Dspring-boot.run.profiles=prod"       # perfil prod
 
 ```bash
 mvn clean compile                                           # compilar
-mvn test                                                    # ejecutar 148 tests unitarios
+mvn test                                                    # ejecutar 158 tests
 mvn clean test jacoco:report                                # tests + reporte de cobertura
 bru run --env local                                         # tests de contrato (requiere app levantada)
 ```

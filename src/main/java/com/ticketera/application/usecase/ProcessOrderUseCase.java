@@ -51,7 +51,7 @@ public class ProcessOrderUseCase {
         for (int i = 0; i < quantity; i++) {
             Ticket ticket = new Ticket(
                 new TicketId(UUID.randomUUID().toString()),
-                new EventId(event.getCode().value()),
+                new EventId(String.valueOf(event.getDbId())),
                 resolvedName,
                 resolvedEmail != null ? new com.ticketera.domain.valueobject.Email(resolvedEmail) : null,
                 orderId,

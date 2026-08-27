@@ -18,8 +18,10 @@ import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 
 @WebMvcTest({GlobalExceptionHandler.class, CityController.class, EventController.class, TicketOrderController.class})
+@AutoConfigureMockMvc(addFilters = false)
 @DisplayName("Global Exception Handler")
 class GlobalExceptionHandlerTest {
 
