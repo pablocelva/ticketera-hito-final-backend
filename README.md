@@ -17,7 +17,10 @@ Ticketera es un sistema de venta de entradas para eventos independientes. Este r
 
 **Seguridad:** HTTP Basic auth para mutaciones admin, CORS centralizado via `CorsConfigurationSource`, passwords con BCrypt, sesiones stateless, Dockerfile con usuario no-root.
 
-**Repositorio Frontend** (para integración full-stack): [Link](https://github.com/pablocelva/ticketera-hito-final-frontend)
+## Links del proyecto
+
+- **Repositorio Frontend**: [Link](https://github.com/pablocelva/ticketera-hito-final-frontend)
+- **Despliegue en Netlify:** [Link](https://ticketera-hito-2.netlify.app/)
 
 Repositorios que sirven de base a este proyecto:
 
