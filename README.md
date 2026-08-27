@@ -17,11 +17,14 @@ Ticketera es un sistema de venta de entradas para eventos independientes. Este r
 
 **Seguridad:** HTTP Basic auth para mutaciones admin, CORS centralizado via `CorsConfigurationSource`, passwords con BCrypt, sesiones stateless, Dockerfile con usuario no-root.
 
+**Repositorio Frontend** (para integración full-stack): [Link](https://github.com/pablocelva/ticketera-hito-final-frontend)
+
 Repositorios que sirven de base a este proyecto:
 
 - **Hito 1** (núcleo inicial de la ticketera): [hito1-ticketera](https://github.com/pablocelva/hito1-ticketera)
+- **Hito 2** (frontend inicial con typescript): [hito2-ticketera-frontend](https://github.com/pablocelva/hito2-ticketera-frontend)
 - **Hito 3** (refactor DDD / Clean-Hexagonal): [hito3-backend-domain-driven-design](https://github.com/pablocelva/hito3-backend-domain-driven-design)
-- **Hito 4** (refactor con Spring Boot y Swagger): [hito1-ticketera](https://github.com/pablocelva/hito4-backend-spring-boot)
+- **Hito 4** (refactor con Spring Boot y Swagger): [hito4-backend-spring-boot](https://github.com/pablocelva/hito4-backend-spring-boot)
 
 ## Índice
 
