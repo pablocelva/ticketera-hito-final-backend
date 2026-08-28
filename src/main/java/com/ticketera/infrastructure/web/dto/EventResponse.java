@@ -40,6 +40,6 @@ public record EventResponse(
             event.getPrice().value(),
             event.getImageUrl(),
             event.isFeatured(),
-            event.getStatus().name());
+            event.effectiveStatus(LocalDateTime.now()).name());
     }
 }

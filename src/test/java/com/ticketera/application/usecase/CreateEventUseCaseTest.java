@@ -30,7 +30,7 @@ class CreateEventUseCaseTest {
     void createsEventWithAllFieldsAndPersistsIt() {
         LocalDateTime date = LocalDateTime.of(2026, 12, 1, 20, 0);
         Event result = useCase.execute(1L, "Jazz Night", "Gran Teatro", 500,
-            "Miles Davis", date, "20:00", 25000.0, "/images/jazz.webp", true);
+        "Miles Davis", date, "20:00", 25000.0, "/images/jazz.webp", true, EventStatus.SCHEDULED);
 
         assertThat(result.getCode()).as("Event code should be generated").isNotNull();
         assertThat(result.getName()).isEqualTo("Jazz Night");
@@ -51,10 +51,50 @@ class CreateEventUseCaseTest {
     @DisplayName("Delegates validation to domain")
     void delegatesValidationToDomain() {
         assertThatThrownBy(() -> useCase.execute(1L, "Jazz Night", "Gran Teatro", 0,
-                "Art", LocalDateTime.now(), "20:00", 10000.0, "/img.jpg", false))
+        "Art", LocalDateTime.now(), "20:00", 10000.0, "/img.jpg", false, EventStatus.SCHEDULED))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessage("Capacity must be positive");
 
         verify(repository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Creates event with ON_SALE status")
+    void createsEventWithOnSaleStatus() {
+        Event result = useCase.execute(1L, "Jazz Night", "Gran Teatro", 500,
+            "Miles Davis", LocalDateTime.now(), "20:00", 25000.0, "/img.jpg", true, EventStatus.ON_SALE);
+
+        assertThat(result.getStatus()).isEqualTo(EventStatus.ON_SALE);
+        verify(repository).save(any(Event.class));
+    }
+
+    @Test
+    @DisplayName("Creates event with SOLD_OUT status")
+    void createsEventWithSoldOutStatus() {
+        Event result = useCase.execute(1L, "Jazz Night", "Gran Teatro", 500,
+            "Miles Davis", LocalDateTime.now(), "20:00", 25000.0, "/img.jpg", true, EventStatus.SOLD_OUT);
+
+        assertThat(result.getStatus()).isEqualTo(EventStatus.SOLD_OUT);
+        verify(repository).save(any(Event.class));
+    }
+
+    @Test
+    @DisplayName("Creates event with CANCELED status")
+    void createsEventWithCanceledStatus() {
+        Event result = useCase.execute(1L, "Jazz Night", "Gran Teatro", 500,
+            "Miles Davis", LocalDateTime.now(), "20:00", 25000.0, "/img.jpg", true, EventStatus.CANCELED);
+
+        assertThat(result.getStatus()).isEqualTo(EventStatus.CANCELED);
+        verify(repository).save(any(Event.class));
+    }
+
+    @Test
+    @DisplayName("Creates event with null status defaults to SCHEDULED")
+    void createsEventWithNullStatusDefaultsToScheduled() {
+        Event result = useCase.execute(1L, "Jazz Night", "Gran Teatro", 500,
+            "Miles Davis", LocalDateTime.now(), "20:00", 25000.0, "/img.jpg", true, null);
+
+        assertThat(result.getStatus()).isEqualTo(EventStatus.SCHEDULED);
+        verify(repository).save(any(Event.class));
     }
 }

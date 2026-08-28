@@ -192,4 +192,140 @@ public class EventTest {
         assertThat(event.getCapacity()).isEqualTo(200);
         assertThat(event.getAvailableTickets()).isEqualTo(100);
     }
+
+    @Test
+    @DisplayName("Should transition to SOLD_OUT when last ticket is reserved")
+    void transitionsToSoldOutWhenLastTicketReserved() {
+        Event event = new Event("evt-003", "Full Show", "Club", 1,
+            "Artist", LocalDateTime.now(), "21:00", 10000.0, "/img.jpg", false);
+        event.reserveTickets(new TicketQuantity(1));
+
+        assertThat(event.getStatus()).isEqualTo(EventStatus.SOLD_OUT);
+    }
+
+    @Test
+    @DisplayName("Should not change status when tickets remain after reserve")
+    void keepsScheduledWhenTicketsRemain() {
+        Event event = newEvent();
+        event.reserveTickets(new TicketQuantity(1));
+
+        assertThat(event.getStatus()).isEqualTo(EventStatus.SCHEDULED);
+    }
+
+    @Test
+    @DisplayName("Should mark event as on sale")
+    void marksEventAsOnSale() {
+        Event event = newEvent();
+        event.markOnSale();
+
+        assertThat(event.getStatus()).isEqualTo(EventStatus.ON_SALE);
+    }
+
+    @Test
+    @DisplayName("Should throw when marking sold-out event as on sale")
+    void throwsWhenMarkingSoldOutAsOnSale() {
+        Event event = newEvent();
+        event.markSoldOut();
+
+        assertThatThrownBy(event::markOnSale)
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessage("Cannot mark a sold-out event as on sale");
+    }
+
+    @Test
+    @DisplayName("Should throw when marking canceled event as on sale")
+    void throwsWhenMarkingCanceledAsOnSale() {
+        Event event = newEvent();
+        event.markCanceled();
+
+        assertThatThrownBy(event::markOnSale)
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessage("Cannot mark a canceled event as on sale");
+    }
+
+    @Test
+    @DisplayName("Should mark event as sold out")
+    void marksEventAsSoldOut() {
+        Event event = newEvent();
+        event.markSoldOut();
+
+        assertThat(event.getStatus()).isEqualTo(EventStatus.SOLD_OUT);
+    }
+
+    @Test
+    @DisplayName("Should mark event as canceled")
+    void marksEventAsCanceled() {
+        Event event = newEvent();
+        event.markCanceled();
+
+        assertThat(event.getStatus()).isEqualTo(EventStatus.CANCELED);
+    }
+
+    @Test
+    @DisplayName("effectiveStatus returns CANCELED when status is CANCELED")
+    void effectiveStatusReturnsCanceled() {
+        Event event = newEvent();
+        event.markCanceled();
+
+        assertThat(event.effectiveStatus(LocalDateTime.now()))
+            .isEqualTo(EventStatus.CANCELED);
+    }
+
+    @Test
+    @DisplayName("effectiveStatus returns SOLD_OUT when status is SOLD_OUT")
+    void effectiveStatusReturnsSoldOut() {
+        Event event = newEvent();
+        event.markSoldOut();
+
+        assertThat(event.effectiveStatus(LocalDateTime.now()))
+            .isEqualTo(EventStatus.SOLD_OUT);
+    }
+
+    @Test
+    @DisplayName("effectiveStatus returns FINISHED when event date has passed")
+    void effectiveStatusReturnsFinishedWhenPast() {
+        Event event = Event.reconstitute(1L, new EventId("evt-old"),
+            new com.ticketera.domain.valueobject.CityId(1L),
+            "Old Show", "Venue", 100, 100,
+            "Artist", LocalDateTime.of(2020, 1, 1, 1, 0), "01:00",
+            5000.0, false, EventStatus.ON_SALE, "/img.jpg");
+
+        assertThat(event.effectiveStatus(LocalDateTime.of(2026, 12, 2, 1, 0)))
+            .isEqualTo(EventStatus.FINISHED);
+    }
+
+    @Test
+    @DisplayName("effectiveStatus returns current status when event date is future")
+    void effectiveStatusReturnsCurrentWhenFuture() {
+        Event event = Event.reconstitute(1L, new EventId("evt-new"),
+            new com.ticketera.domain.valueobject.CityId(1L),
+            "New Show", "Venue", 100, 100,
+            "Artist", LocalDateTime.of(2099, 12, 1, 1, 0), "01:00",
+            5000.0, false, EventStatus.ON_SALE, "/img.jpg");
+
+        assertThat(event.effectiveStatus(LocalDateTime.of(2026, 8, 28, 12, 0)))
+            .isEqualTo(EventStatus.ON_SALE);
+    }
+
+    @Test
+    @DisplayName("effectiveStatus does not change stored status")
+    void effectiveStatusDoesNotChangeStoredStatus() {
+        Event event = newEvent();
+        event.markOnSale();
+        event.effectiveStatus(LocalDateTime.of(2099, 1, 1, 0, 0));
+
+        assertThat(event.getStatus()).isEqualTo(EventStatus.ON_SALE);
+    }
+
+    @Test
+    @DisplayName("effectiveStatus returns stored status when event date is null")
+    void effectiveStatusWithNullEventDate() {
+        Event event = Event.reconstitute(1L, new EventId("evt-null-date"),
+            new com.ticketera.domain.valueobject.CityId(1L),
+            "No Date", "Venue", 100, 100,
+            "Art", null, "20:00", 10000.0, false, EventStatus.ON_SALE, "/img.jpg");
+
+        assertThat(event.effectiveStatus(LocalDateTime.now()))
+            .isEqualTo(EventStatus.ON_SALE);
+    }
 }

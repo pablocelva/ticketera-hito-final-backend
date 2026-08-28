@@ -81,7 +81,7 @@ public class EventController {
         var event = createEventUseCase.execute(
             request.cityId(), request.name(), request.venue(), request.capacity(),
             request.artist(), request.eventDate(), request.eventTime(),
-            request.price(), request.imageUrl(), request.featured());
+            request.price(), request.imageUrl(), request.featured(), request.status());
         return ResponseEntity.status(HttpStatus.CREATED).body(EventResponse.fromDomain(event));
     }
 
@@ -97,7 +97,7 @@ public class EventController {
         return EventResponse.fromDomain(
             updateEventUseCase.execute(id, request.name(), request.venue(), request.capacity(),
                 request.artist(), request.eventDate(), request.eventTime(),
-                request.price(), request.imageUrl(), request.featured()));
+                request.price(), request.imageUrl(), request.featured(), request.status()));
     }
 
     @Operation(summary = "Eliminar evento", description = "Elimina un evento que no tenga ventas")

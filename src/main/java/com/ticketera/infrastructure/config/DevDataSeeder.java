@@ -35,6 +35,7 @@ public class DevDataSeeder {
                     "Miles Davis Quartet", LocalDateTime.of(2026, 12, 15, 20, 0), "20:00",
                     25000.0, "/images/braxton.webp", true);
                 jazz.setCityId(limaId);
+                jazz.markOnSale();
 
                 var rock = new Event(
                     "evt-rock-002", "Rock Fest", "Estadio Nacional", 5000,
@@ -46,14 +47,14 @@ public class DevDataSeeder {
                 var opera = new Event(
                     "evt-opera-003", "La Traviata", "Teatro Real Madrid", 800,
                     "Placido Domingo", LocalDateTime.of(2027, 1, 10, 19, 0), "19:00",
-                    120000.0, "/images/opera.webp", true);
+                    120000.0, "/images/genevieve.jfif", true);
                 opera.setCityId(madId);
                 opera.reserveTickets(new TicketQuantity(800));
 
                 var festival = new Event(
                     "evt-fest-004", "Bogota Music Festival", "Parque Simon Bolivar", 10000,
                     "Various Artists", LocalDateTime.of(2027, 6, 1, 14, 0), "14:00",
-                    80000.0, "/images/festival.webp", false);
+                    80000.0, "/images/terrace.jpg", false);
                 festival.setCityId(bogId);
 
                 eventRepository.save(jazz);

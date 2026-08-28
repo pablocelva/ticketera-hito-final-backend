@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
 import java.time.LocalDateTime;
+import com.ticketera.domain.valueobject.EventStatus;
 
 @Schema(description = "Peticion de actualizacion de evento")
 public record UpdateEventRequest(
@@ -40,6 +41,10 @@ public record UpdateEventRequest(
     String imageUrl,
 
     @Schema(description = "Evento destacado en la cartelera", example = "false")
-    boolean featured
+    boolean featured,
+
+    @Schema(description = "Estado del evento (publicar, cancelar)", example = "ON_SALE",
+    allowableValues = {"SCHEDULED", "ON_SALE", "SOLD_OUT", "LIVE", "FINISHED", "CANCELED"})
+    EventStatus status
 ) {
 }

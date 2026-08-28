@@ -7,13 +7,15 @@
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 ![Security](https://img.shields.io/badge/Spring%20Security-HTTP%20Basic-6DB33F?logo=springsecurity&logoColor=white)
 ![Swagger](https://img.shields.io/badge/OpenAPI-Swagger%20UI-85EA2D?logo=swagger&logoColor=black)
-![JUnit](https://img.shields.io/badge/JUnit%205%20%2B%20Mockito%20%2B%20AssertJ-158%20tests-25A162?logo=junit5&logoColor=white)
+![JUnit](https://img.shields.io/badge/JUnit%205%20%2B%20Mockito%20%2B%20AssertJ-179%20tests-25A162?logo=junit5&logoColor=white)
 ![Coverage](https://img.shields.io/badge/cobertura-100%25-brightgreen)
 ![Bruno](https://img.shields.io/badge/contratos-Bruno%206%2F6-F6B93B)
 
 Ticketera es un sistema de venta de entradas para eventos independientes. Este repositorio evoluciona el **Core de Dominio Puro** construido en el Hito 3 hacia un **microservicio con Spring Boot, PostgreSQL y Docker**, manteniendo el núcleo (`domain` y `application`) completamente aislado de frameworks, siguiendo los principios de **Clean Architecture**, **Domain-Driven Design (DDD)** y **Hexagonal Architecture (Ports & Adapters)**.
 
 **Estado del Hito 4:** migración a Spring Boot, adaptador de persistencia JPA/PostgreSQL, capa web REST con manejo global de errores, configuración por perfiles (dev/prod) con Swagger aislado, Docker Compose con PostgreSQL, Dockerfile multi-stage seguro y colección de pruebas de contrato con Bruno.
+
+**Ciclo de vida del evento:** el dominio modela las transiciones de estado con reglas de negocio (`markOnSale()`, `markSoldOut()`, `markCanceled()`), `SOLD_OUT` automático al agotarse las entradas, y `status` opcional en creación y actualización. Las respuestas calculan el estado vigente con `effectiveStatus()`: `CANCELED` y `SOLD_OUT` tienen precedencia y `FINISHED` se deriva cuando el evento ya pasó; el estado persistido queda acotado a `SCHEDULED`, `ON_SALE`, `SOLD_OUT` y `CANCELED`.
 
 **Seguridad:** HTTP Basic auth para mutaciones admin, CORS centralizado via `CorsConfigurationSource`, passwords con BCrypt, sesiones stateless, Dockerfile con usuario no-root.
 
@@ -285,7 +287,7 @@ hito4-backend-spring-boot/
 |---|---|
 | `ApplicationConfig.java` | Clase `@Configuration` que actúa como *composition root*: registra los catorce casos de uso como beans (`@Bean`), inyectándoles los adaptadores de infraestructura. Mantiene `domain` y `application` libres de anotaciones de framework. |
 | `OpenApiConfig.java` | Bean `OpenAPI` con la metadata de la documentación. Anotado con `@Profile("dev")`: fuera del perfil dev ni siquiera se registra en el contexto. |
-| `DevDataSeeder.java` | `CommandLineRunner` acotado al perfil `dev`: siembra tres ciudades (`LIM` Lima, `BOG` Bogotá, `MAD` Madrid) y cuatro eventos enriquecidos (Jazz Night, Rock Fest, La Traviata, Bogota Music Festival) con artist, date, price, imageUrl, featured y status si las tablas están vacías. |
+| `DevDataSeeder.java` | `CommandLineRunner` acotado al perfil `dev`: siembra tres ciudades (`LIM` Lima, `BOG` Bogotá, `MAD` Madrid) y cuatro eventos enriquecidos (Jazz Night, Rock Fest, La Traviata, Bogota Music Festival) con artist, date, price, imageUrl, featured y estados de negocio reales (Jazz Night `ON_SALE`, La Traviata agotada `SOLD_OUT`) si las tablas están vacías. |
 | `SecurityConfig.java` | `@Configuration` con `@EnableWebSecurity`: define un `SecurityFilterChain` con HTTP Basic, CSRF deshabilitado (API stateless), sesiones `STATELESS` y CORS centralizado via `CorsConfigurationSource`. Lectura pública (GET events/cities/tickets, POST orders, healthcheck, Swagger en dev). Mutaciones admin protegidas (POST/PUT/DELETE events y cities). Credenciales admin en `InMemoryUserDetailsManager` con BCrypt. |
 
 **Recursos de configuración e infraestructura local:**
@@ -302,7 +304,7 @@ hito4-backend-spring-boot/
 
 | Archivo | Responsabilidad |
 |---|---|
-| `Event.java` | Aggregate Root del contexto Ticketing. Identificado por un `EventId` (String code) y un `Long id` (PK auto-generado), vinculado a una `CityId`. Contiene nombre, venue, capacidad, artista, fecha/hora del evento, precio (`Money`), URL de imagen, bandera `featured` y estado (`EventStatus`). Delega el control de inventario a su `TicketPool`. Expone `hasAvailability()`, `getAvailableTickets()`, `getTicketSold()`, `hasSoldTickets()`, `reserveTickets(TicketQuantity)` y `updateDetails(...)` como puntos de entrada para modificar el estado. Incluye la fábrica estática `reconstitute(...)` para reconstruir el agregado desde la base de datos. |
+| `Event.java` | Aggregate Root del contexto Ticketing. Identificado por un `EventId` (String code) y un `Long id` (PK auto-generado), vinculado a una `CityId`. Contiene nombre, venue, capacidad, artista, fecha/hora del evento, precio (`Money`), URL de imagen, bandera `featured` y estado (`EventStatus`). Delega el control de inventario a su `TicketPool`. Expone `hasAvailability()`, `getAvailableTickets()`, `getTicketSold()`, `hasSoldTickets()`, `reserveTickets(TicketQuantity)` y `updateDetails(...)` como puntos de entrada para modificar el estado. Modela el ciclo de vida del evento con `markOnSale()`, `markSoldOut()` y `markCanceled()` (con reglas de negocio que impiden transiciones inválidas desde agotado/cancelado); `reserveTickets()` marca `SOLD_OUT` automáticamente al agotarse las entradas, y `effectiveStatus(now)` computa el estado vigente derivando `FINISHED` a partir de la fecha del evento. Incluye la fábrica estática `reconstitute(...)` para reconstruir el agregado desde la base de datos. |
 | `Ticket.java` | Entidad que representa una entrada vendida, identificada por un `TicketId` (UUID) y vinculada a un `EventId` (VO). Almacena nombre y email del cliente (`Email` VO, null para anónimos). Incluye campos enriquecidos de la orden: `orderId`, `unitPrice` (Money), `totalAmount` (Money), `status` (OrderStatus) y `createdAt`. |
 | `TicketPool.java` | Entidad interna que gestiona el stock de entradas disponibles. Valida que la capacidad sea positiva y que haya stock suficiente antes de reservar, evitando la sobreventa. Su constructor de reconstitución `(capacidad, disponibles)` valida que las disponibles estén entre 0 y la capacidad. |
 | `Customer.java` | Entidad que representa a la persona que compra entradas, identificada por un `id` único y un email válido (Value Object `Email`). |
@@ -318,7 +320,7 @@ hito4-backend-spring-boot/
 | `TicketQuantity.java` | Cantidad de entradas de una orden. Rechaza valores ≤ 0 (`InvalidOrderException`). |
 | `Money.java` | Precio de una entrada. Rechaza valores ≤ 0 (`InvalidOrderException`). |
 | `Email.java` | Email normalizado (trim + minúsculas). Rechaza `null`, vacíos o formatos inválidos (`InvalidEmailException`). |
-| `EventStatus.java` | Enum que representa los estados posibles de un evento: `SCHEDULED`, `ON_SALE`, `SOLD_OUT`, `LIVE`, `FINISHED`, `CANCELED`. Se persiste como `String` en la base de datos. |
+| `EventStatus.java` | Enum que representa los estados posibles de un evento: `SCHEDULED`, `ON_SALE`, `SOLD_OUT`, `LIVE`, `FINISHED`, `CANCELED`. Se persiste como `String` en la base de datos; solo se almacenan `SCHEDULED`, `ON_SALE`, `SOLD_OUT` y `CANCELED` (el resto se reporta derivado o no se usa). |
 | `OrderStatus.java` | Enum que representa los estados posibles de una orden: `CONFIRMED`, `CANCELLED`, `REFUNDED`. Se usa en `Ticket` y `OrderResult` para rastrear el estado de la compra. |
 
 **Casos de uso:**
@@ -326,10 +328,10 @@ hito4-backend-spring-boot/
 | Archivo | Responsabilidad |
 |---|---|
 | `ProcessOrderUseCase.java` | Procesa una orden: construye los Value Objects, busca el evento, reserva las entradas, **persiste el cambio con `save()`**, **crea una entrada en la tabla `tickets` por cada unidad comprada** con precio unitario (Money), total (Money), estado (`OrderStatus.CONFIRMED`), orderId (UUID) y fecha de creación, notifica al administrador y retorna un `OrderResult` enriquecido. Depende de `EventRepository`, `TicketRepository` y `MessageNotifier`. |
-| `CreateEventUseCase.java` | Crea un nuevo evento generando su identificador (`UUID`), asignando la `cityId` proporcionada, delegando las validaciones al dominio, persistiéndolo y devolviendo el `Long id` generado. Depende de `EventRepository`. |
+| `CreateEventUseCase.java` | Crea un nuevo evento generando su identificador (`UUID`), asignando la `cityId` proporcionada, delegando las validaciones al dominio, persistiéndolo y devolviendo el `Long id` generado. Aplica el `status` opcional de la petición (`applyStatus`) para publicar/cancelar el evento al crearlo. Depende de `EventRepository`. |
 | `GetEventsUseCase.java` | Consulta la cartelera completa delegando en `EventRepository.findAll()`. |
 | `GetEventDetailsUseCase.java` | Consulta un evento por identificador (`Long`) y lanza `EventNotFoundException` cuando no existe. |
-| `UpdateEventUseCase.java` | Actualiza nombre, lugar y capacidad de un evento existente. Valida que la nueva capacidad no sea menor que las entradas vendidas. Depende de `EventRepository`. |
+| `UpdateEventUseCase.java` | Actualiza nombre, lugar, capacidad y demás atributos de un evento existente. Valida que la nueva capacidad no sea menor que las entradas vendidas. Aplica el `status` opcional de la petición (`applyStatus`) para publicar/cancelar el evento durante la actualización. Depende de `EventRepository`. |
 | `DeleteEventUseCase.java` | Elimina un evento que no tenga entradas vendidas. Lanza `InvalidOrderException` si tiene ventas. Depende de `EventRepository`. |
 | `GetEventTicketsUseCase.java` | Consulta todas las entradas vendidas de un evento. Depende de `TicketRepository`. |
 | `CreateCityUseCase.java` | Crea una nueva ciudad con código y nombre, persistiéndola y devolviendo el `Long id` generado. Depende de `CityRepository`. |
@@ -378,10 +380,10 @@ hito4-backend-spring-boot/
 
 | Archivo | Responsabilidad |
 |---|---|
-| `CreateEventRequest.java` | Petición de creación de evento con `cityId`, `name`, `venue`, `capacity`, `artist`, `eventDate`, `eventTime`, `price`, `imageUrl`, `featured`. Validaciones `@NotBlank`/`@Positive`/`@NotNull`. |
-| `UpdateEventRequest.java` | Petición de actualización de evento con `name`, `venue`, `capacity`, `artist`, `eventDate`, `eventTime`, `price`, `imageUrl`, `featured`. |
+| `CreateEventRequest.java` | Petición de creación de evento con `cityId`, `name`, `venue`, `capacity`, `artist`, `eventDate`, `eventTime`, `price`, `imageUrl`, `featured` y `status` (opcional). Validaciones `@NotBlank`/`@Positive`/`@NotNull`. |
+| `UpdateEventRequest.java` | Petición de actualización de evento con `name`, `venue`, `capacity`, `artist`, `eventDate`, `eventTime`, `price`, `imageUrl`, `featured` y `status` (opcional). |
 | `TicketOrderRequest.java` | Petición de compra (`eventId`, `quantity`, `customerName?`, `customerEmail?` con `@Email`, `unitPrice?`). |
-| `EventResponse.java` | Respuesta de cartelera/detalle con `id`, `code`, `cityId`, `name`, `venue`, `capacity`, `availableTickets`, `ticketsSold`, `artist`, `eventDate`, `eventTime`, `price`, `imageUrl`, `featured`, `status`. Se construye con `fromDomain(Event)`. |
+| `EventResponse.java` | Respuesta de cartelera/detalle con `id`, `code`, `cityId`, `name`, `venue`, `capacity`, `availableTickets`, `ticketsSold`, `artist`, `eventDate`, `eventTime`, `price`, `imageUrl`, `featured`, `status`. Se construye con `fromDomain(Event)`, calculando `status` mediante `effectiveStatus(now)`. |
 | `OrderResponse.java` | Confirmación de compra construida desde `OrderResult`. Contiene `id`, `eventId`, `eventName`, `customerName`, `customerEmail`, `ticketsPurchased`, `remainingTickets`, `unitPrice`, `totalPrice`, `status`, `createdAt`. |
 | `TicketResponseDto.java` | Respuesta de una entrada vendida con `id`, `eventId`, `customerName`, `customerEmail`. |
 | `CityRequestDto.java` | Petición de creación de ciudad (`code`, `name`). |
@@ -535,7 +537,8 @@ Request:
   "eventTime": "20:00",
   "price": 25000.0,
   "imageUrl": "/images/jazz.webp",
-  "featured": true
+  "featured": true,
+  "status": "ON_SALE"
 }
 ```
 
@@ -551,6 +554,7 @@ Request:
 | `price` | `double` | Sí | `@Positive` |
 | `imageUrl` | `String` | No | — |
 | `featured` | `boolean` | No | default `false` |
+| `status` | `EventStatus` | No | default `SCHEDULED`; `ON_SALE`/`SOLD_OUT`/`CANCELED` aplican la transición |
 
 Response `201`:
 ```json
@@ -649,7 +653,8 @@ Request:
   "eventTime": "21:00",
   "price": 30000.0,
   "imageUrl": "/images/jazz-v2.webp",
-  "featured": true
+  "featured": true,
+  "status": "ON_SALE"
 }
 ```
 
@@ -664,6 +669,7 @@ Request:
 | `price` | `double` | Sí | `@Positive` |
 | `imageUrl` | `String` | No | — |
 | `featured` | `boolean` | No | — |
+| `status` | `EventStatus` | No | default `SCHEDULED`; `ON_SALE`/`SOLD_OUT`/`CANCELED` aplican la transición |
 
 > **Nota:** No se puede cambiar el `cityId` ni el `code`. La capacidad nueva no puede ser menor que las entradas ya vendidas.
 
@@ -920,7 +926,7 @@ Datos semilla del perfil dev:
 | Ciudad | Evento | Artista | Venue | Precio | Capacidad | Disponibles | Featured | Status |
 |---|---|---|---|---|---|---|---|---|
 | `LIM` Lima | `evt-jazz-001` Jazz Night | Miles Davis Quartet | Gran Teatro Lima | $25.000 | 500 | 500 | Sí | `ON_SALE` |
-| `LIM` Lima | `evt-rock-002` Rock Fest | AC/DC | Estadio Nacional | $55.000 | 5000 | 3800 (1200 reservadas) | No | `ON_SALE` |
+| `LIM` Lima | `evt-rock-002` Rock Fest | AC/DC | Estadio Nacional | $55.000 | 5000 | 3800 (1200 reservadas) | No | `SCHEDULED` |
 | `MAD` Madrid | `evt-opera-003` La Traviata | Placido Domingo | Teatro Real Madrid | $120.000 | 800 | 0 (agotado) | Sí | `SOLD_OUT` |
 | `BOG` Bogota | `evt-fest-004` Bogota Music Festival | Various Artists | Parque Simon Bolivar | $80.000 | 10000 | 10000 | No | `SCHEDULED` |
 
@@ -1013,11 +1019,11 @@ Este proyecto utiliza **JUnit 5**, **Mockito** y **AssertJ** (gestionados por el
 
 | Clase | Tests | Cobertura |
 |---|---|---|
-| `Event` | 14 | `hasAvailability()` true + false, `reserveTickets` éxito/sold out/cantidad cero/negativa, cálculo de disponibles/vendidas, reconstitución completa (artist, date, price, featured, status), `updateDetails` éxito/capacidad < vendidas con todos los campos, `hasSoldTickets` true + false, `setCityId` |
+| `Event` | 27 | `hasAvailability()` true + false, `reserveTickets` éxito/sold out/cantidad cero/negativa + `SOLD_OUT` automático al agotarse y repercusión en `effectiveStatus`, cálculo de disponibles/vendidas, reconstitución completa (artist, date, price, featured, status), `updateDetails` éxito/capacidad < vendidas con todos los campos, `hasSoldTickets` true + false, `setCityId`, transiciones `markOnSale`/`markSoldOut`/`markCanceled` (éxito y protecciones contra agotado/cancelado), `effectiveStatus` derivando `FINISHED` para eventos pasados, respetando `SOLD_OUT`/`CANCELED` y sin mutar el estado almacenado |
 | `TicketPool` | 9 | `capacity ≤ 0`, `quantity ≤ 0`, `quantity > available`, éxito, pool vacío, reconstitución válida e inválida (disponibles fuera de rango, capacidad no positiva) |
 | `Customer` | 5 | Creación válida (incluye `getEmail()`), `id` null/blank, `name` null/blank |
 | `City` | 8 | Creación válida, `code` null/blank, `name` null/blank, rename éxito/null/blank |
-| `Ticket` | 6 | Creación legacy (datos completos, email blank → null), creación con cliente anonymous, creación enriquecida (orderId, unitPrice, totalAmount, status, createdAt), customerName blank → excepción, email null anónimo |
+| `Ticket` | 7 | Creación legacy (datos completos, email blank → null), creación con cliente anonymous, creación enriquecida (orderId, unitPrice, totalAmount, status, createdAt), customerName blank → excepción, customerName null → excepción, email null anónimo |
 | `TicketQuantity` | 4 | Valor válido, `quantity ≤ 0` (parameterized: 0, -1, -10) |
 | `Money` | 4 | Valor válido, `price ≤ 0` (parameterized: 0.0, -1.0, -100.0) |
 | `Email` | 6 | Normalización, null/blank/vacío (parameterized), sin `@`, sin dominio |
@@ -1028,10 +1034,10 @@ Este proyecto utiliza **JUnit 5**, **Mockito** y **AssertJ** (gestionados por el
 | `CityId` | 7 | Valor válido, `null`, equals mismo valor, equals distinto valor, equals distinto tipo, equals misma referencia, hashCode consistente |
 | `ProcessOrderUseCase` | 8 | `eventId` null/vacío, `quantity` 0/negativo, evento no encontrado, éxito con respuesta enriquecida (id, unitPrice, totalPrice, status, createdAt), cliente anónimo (null), cliente con nombre/email, email blank tratado como anónimo, success with full order result |
 | `SendBookingConfirmationUseCase` | 3 | Email null/vacío, éxito |
-| `CreateEventUseCase` | 2 | Creación válida con `cityId` (id generado + persistencia + verificación de `getCityId()`), validación delegada al dominio |
+| `CreateEventUseCase` | 6 | Creación válida con `cityId` (id generado + persistencia + verificación de `getCityId()`), validación delegada al dominio, aplicación de `status` (`ON_SALE`, `SOLD_OUT`, `CANCELED`) y default `SCHEDULED` cuando es null |
 | `GetEventDetailsUseCase` | 2 | Evento encontrado, `EventNotFoundException` cuando no existe |
 | `GetEventsUseCase` | 1 | Retorna la cartelera completa desde el repositorio |
-| `UpdateEventUseCase` | 3 | Éxito, evento no encontrado, capacidad < vendidas |
+| `UpdateEventUseCase` | 7 | Éxito, evento no encontrado, capacidad < vendidas, preservación de estado con `status` null, `SCHEDULED` como default (no-op), `SOLD_OUT` y `CANCELED` durante la actualización |
 | `DeleteEventUseCase` | 3 | Éxito, evento no encontrado, evento con ventas |
 | `GetEventTicketsUseCase` | 2 | Retorna tickets, lista vacía con `assertThat(result).isEmpty()` |
 | `CreateCityUseCase` | 3 | Creación válida (id generado + persistencia), validación delegada al dominio |
@@ -1046,7 +1052,7 @@ Este proyecto utiliza **JUnit 5**, **Mockito** y **AssertJ** (gestionados por el
 | `ApiResponseTest` | 4 | OK con nombre, OK sin nombre, error, timestamp (excluido del reporte de cobertura) |
 | `GlobalExceptionHandlerTest` | 6 | Corte web MockMvc: 404 Events, 404 Cities, 422 SoldOut, 400 validación, 409 conflicto, 500 inesperado (excluido del reporte de cobertura) |
 | `SecurityConfigTest` | 10 | Integración Spring Security: GET público (events, cities, healthcheck, orders), POST sin auth → 401, POST con wrong pass → 401, POST con credenciales correctas → 400, PUT/DELETE sin auth → 401 (excluido del reporte de cobertura) |
-| **Total** | **158 tests (115 unitarios + 43 de integración/web)** | **100% líneas, 100% métodos, 100% ramas** sobre las 32 clases analizadas |
+| **Total** | **179 tests (136 unitarios + 43 de integración/web)** | **100% líneas, 100% métodos, 100% ramas** sobre las 32 clases analizadas |
 
 ¹ Las interfaces/puertos (`application/port/`) y la capa `infrastructure` están excluidas del reporte JaCoCo por ser contratos sin código ejecutable y detalles técnicos respectivamente.
 
@@ -1147,7 +1153,7 @@ mvn spring-boot:run "-Dspring-boot.run.profiles=prod"       # perfil prod
 
 ```bash
 mvn clean compile                                           # compilar
-mvn test                                                    # ejecutar 158 tests
+mvn test                                                    # ejecutar 179 tests
 mvn clean test jacoco:report                                # tests + reporte de cobertura
 bru run --env local                                         # tests de contrato (requiere app levantada)
 ```

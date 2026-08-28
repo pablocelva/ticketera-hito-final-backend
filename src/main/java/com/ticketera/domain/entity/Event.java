@@ -71,8 +71,6 @@ public class Event {
         this.status = status;
     }
 
-    // --- Getters existentes ---
-
     public Long getDbId() {
         return id;
     }
@@ -121,11 +119,43 @@ public class Event {
         return ticketPool.getAvailable() < capacity;
     }
 
-    public void reserveTickets(TicketQuantity quantity) {
-        ticketPool.reserve(quantity);
+    public void markOnSale() {
+        if (this.status == EventStatus.SOLD_OUT) {
+            throw new IllegalStateException("Cannot mark a sold-out event as on sale");
+        }
+        if (this.status == EventStatus.CANCELED) {
+            throw new IllegalStateException("Cannot mark a canceled event as on sale");
+        }
+        this.status = EventStatus.ON_SALE;
     }
 
-    // --- Getters nuevos ---
+    public void markSoldOut() {
+        this.status = EventStatus.SOLD_OUT;
+    }
+
+    public void markCanceled() {
+        this.status = EventStatus.CANCELED;
+    }
+
+    public EventStatus effectiveStatus(LocalDateTime now) {
+        if (this.status == EventStatus.CANCELED) {
+            return EventStatus.CANCELED;
+        }
+        if (this.status == EventStatus.SOLD_OUT) {
+            return EventStatus.SOLD_OUT;
+        }
+        if (this.eventDate != null && this.eventDate.isBefore(now)) {
+            return EventStatus.FINISHED;
+        }
+        return this.status;
+    }
+
+    public void reserveTickets(TicketQuantity quantity) {
+        ticketPool.reserve(quantity);
+        if (ticketPool.getAvailable() == 0) {
+            this.status = EventStatus.SOLD_OUT;
+        }
+    }
 
     public String getArtist() {
         return artist;
@@ -154,8 +184,6 @@ public class Event {
     public EventStatus getStatus() {
         return status;
     }
-
-    // --- Update detallado ---
 
     public void updateDetails(String name, String venue, int capacity,
                               String artist, LocalDateTime eventDate, String eventTime,

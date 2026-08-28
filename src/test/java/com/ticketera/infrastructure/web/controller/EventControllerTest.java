@@ -112,11 +112,11 @@ class EventControllerTest {
     @DisplayName("Creates event and returns 201")
     void createsEventAndReturns201() throws Exception {
         when(createEventUseCase.execute(anyLong(), any(), any(), anyInt(),
-                any(), any(LocalDateTime.class), any(), anyDouble(), any(), anyBoolean()))
-            .thenReturn(Event.reconstitute(1L, new EventId("evt-new"),
-                new CityId(1L), "Rock Fest", "Estadio", 1000, 1000,
-                "AC/DC", LocalDateTime.of(2027, 1, 15, 21, 0), "21:00",
-                50000.0, false, EventStatus.SCHEDULED, "/images/rock.webp"));
+        any(), any(LocalDateTime.class), any(), anyDouble(), any(), anyBoolean(), any()))
+    .thenReturn(Event.reconstitute(1L, new EventId("evt-new"),
+        new CityId(1L), "Rock Fest", "Estadio", 1000, 1000,
+        "AC/DC", LocalDateTime.of(2027, 1, 15, 21, 0), "21:00",
+        50000.0, false, EventStatus.SCHEDULED, "/images/rock.webp"));
 
         mockMvc.perform(post("/api/v1/events")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -131,10 +131,12 @@ class EventControllerTest {
                       "eventTime": "21:00",
                       "price": 50000.0,
                       "imageUrl": "/images/rock.webp",
-                      "featured": false
+                      "featured": false,
+                      "status": "SCHEDULED"
                     }
                     """))
             .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.status").value("SCHEDULED"))
             .andExpect(jsonPath("$.id").value(1))
             .andExpect(jsonPath("$.code").value("evt-new"))
             .andExpect(jsonPath("$.artist").value("AC/DC"))
@@ -158,7 +160,7 @@ class EventControllerTest {
     @DisplayName("Updates event and returns 200")
     void updatesEventAndReturns200() throws Exception {
         when(updateEventUseCase.execute(eq(1L), any(), any(), anyInt(),
-                any(), any(LocalDateTime.class), any(), anyDouble(), any(), anyBoolean()))
+        any(), any(LocalDateTime.class), any(), anyDouble(), any(), anyBoolean(), any()))
             .thenReturn(Event.reconstitute(1L, new EventId("evt-1"),
                 new CityId(1L), "Rock Night", "Estadio", 500, 500,
                 "Bands", LocalDateTime.of(2027, 6, 1, 20, 0), "20:00",
@@ -176,13 +178,15 @@ class EventControllerTest {
                       "eventTime": "20:00",
                       "price": 30000.0,
                       "imageUrl": "/images/rock.webp",
-                      "featured": false
+                      "featured": false,
+                      "status": "ON_SALE"
                     }
                     """))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(1))
             .andExpect(jsonPath("$.name").value("Rock Night"))
             .andExpect(jsonPath("$.artist").value("Bands"))
+            .andExpect(jsonPath("$.status").value("ON_SALE"))
             .andExpect(jsonPath("$.availableTickets").value(500));
     }
 
@@ -190,7 +194,7 @@ class EventControllerTest {
     @DisplayName("Returns 404 when updating non-existent event")
     void returns404WhenUpdatingNonExistentEvent() throws Exception {
         when(updateEventUseCase.execute(eq(999L), any(), any(), anyInt(),
-                any(), any(LocalDateTime.class), any(), anyDouble(), any(), anyBoolean()))
+        any(), any(LocalDateTime.class), any(), anyDouble(), any(), anyBoolean(), any()))
             .thenThrow(new EventNotFoundException("Event not found: 999"));
 
         mockMvc.perform(put("/api/v1/events/999")
