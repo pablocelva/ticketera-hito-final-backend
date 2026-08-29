@@ -48,24 +48,22 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.GET, "/api/v1/events/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/cities/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/events/*/tickets").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/v1/orders").permitAll()
-                .requestMatchers("/healthcheck").permitAll()
-                .requestMatchers("/swagger-ui/**", "/swagger-ui.html").permitAll()
-                .requestMatchers("/v3/api-docs/**", "/api-docs/**").permitAll()
-                .anyRequest().authenticated()
-            )
+            .authorizeHttpRequests(auth -> {
+                if (isProd) {
+                    auth.requestMatchers("/swagger-ui/**", "/swagger-ui.html",
+                        "/v3/api-docs/**", "/api-docs/**").denyAll();
+                } else {
+                    auth.requestMatchers("/swagger-ui/**", "/swagger-ui.html",
+                        "/v3/api-docs/**", "/api-docs/**").permitAll();
+                }
+                auth.requestMatchers(HttpMethod.GET, "/api/v1/events/**").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/v1/cities/**").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/v1/events/*/tickets").permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/v1/orders").permitAll()
+                    .requestMatchers("/healthcheck").permitAll()
+                    .anyRequest().authenticated();
+            })
             .httpBasic(httpBasic -> {});
-
-        if (isProd) {
-            http.authorizeHttpRequests(auth -> auth
-                .requestMatchers("/swagger-ui/**", "/swagger-ui.html",
-                    "/v3/api-docs/**", "/api-docs/**").denyAll()
-            );
-        }
 
         return http.build();
     }

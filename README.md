@@ -125,6 +125,8 @@ hito4-backend-spring-boot/
 ├── Dockerfile
 ├── pom.xml
 ├── compose.yaml
+├── db/
+│   └── init-schema.sql
 ├── .env.example
 ├── README.md
 ├── bruno/
@@ -297,7 +299,8 @@ hito4-backend-spring-boot/
 | `src/main/resources/application.yml` | Configuración común: puerto `8081`, nombre de la aplicación y perfil por defecto (`dev`). |
 | `src/main/resources/application-dev.yml` | Perfil desarrollo: credenciales locales de Docker, `ddl-auto: update`, SQL en consola, Swagger habilitado, CORS permitido desde `localhost:5173` y credenciales admin (`admin`/`admin`). |
 | `src/main/resources/application-prod.yml` | Perfil producción: credenciales externalizadas (`TICKETERA_DB_URL/USERNAME/PASSWORD`, `ADMIN_USERNAME/PASSWORD`, `CORS_ALLOWED_ORIGINS`), `ddl-auto: validate`, SQL silencioso y Swagger deshabilitado. Importa opcionalmente el archivo `.env`. |
-| `compose.yaml` | Docker Compose con dos servicios: `db` (PostgreSQL 16 para desarrollo) y `api` (build multi-stage desde Dockerfile, perfil prod, dependencia de DB healthy). |
+| `compose.yaml` | Docker Compose con dos servicios: `db` (PostgreSQL 16 para desarrollo) y `api` (build multi-stage desde Dockerfile, perfil prod, dependencia de DB healthy). El servicio `db` monta `db/init-schema.sql` en `/docker-entrypoint-initdb.d/` para inicializar el esquema automáticamente en un volumen vacío. |
+| `db/init-schema.sql` | DDL PostgreSQL que replica el esquema que generan las entidades JPA. Se ejecuta una sola vez, en el primer arranque del contenedor `db` con el volumen de datos vacío, y deja el esquema listo para que el perfil prod (`ddl-auto: validate`) pueda validar contra tablas existentes. |
 | `.env.example` | Plantilla commiteada con todas las variables: BD (`TICKETERA_DB_*`), admin (`ADMIN_USERNAME/PASSWORD`) y CORS (`CORS_ALLOWED_ORIGINS`). Se copia a `.env` (ignorado por git). |
 
 **Entidades (Aggregate Roots):**
@@ -888,7 +891,7 @@ Resultado verificado: con perfil `dev` la consola es plenamente operativa; con p
 
 | Servicio | Imagen | Puerto | Descripción |
 |---|---|---|---|
-| `db` | `postgres:16-alpine` | `5433` → `5432` | Base de datos de desarrollo con healthcheck (`pg_isready`) |
+| `db` | `postgres:16-alpine` | `5433` → `5432` | Base de datos con healthcheck (`pg_isready`) y esquema inicializado en volumen nuevo (`db/init-schema.sql`) |
 | `api` | Build multi-stage (`Dockerfile`) | `8081` | Microservicio en perfil prod, depends_on `db` healthy, usuario no-root |
 
 ### Dockerfile (multi-stage)
@@ -897,6 +900,10 @@ Resultado verificado: con perfil `dev` la consola es plenamente operativa; con p
 |---|---|---|
 | Build | `maven:3.9-eclipse-temurin-17` | Compila el jar con Maven (sin tests) |
 | Runtime | `eclipse-temurin:17-jre-alpine` | JRE mínimo + usuario `appuser` (no-root) |
+
+### Esquema inicial en base nueva
+
+El perfil prod usa `ddl-auto: validate`, que **valida** el esquema contra las entidades pero **no lo crea**. Para que una base recién creada (volumen vacío) arranque sin pasos previos, el contenedor `db` ejecuta `db/init-schema.sql` en su primer inicio (directorio `/docker-entrypoint-initdb.d`). Ese script replica exactamente el esquema que generan las entidades JPA (`cities`, `events`, `tickets`), por lo que el `validate` del perfil prod pasa desde el primer arranque.
 
 ### Credenciales
 
@@ -916,7 +923,7 @@ Resultado verificado: con perfil `dev` la consola es plenamente operativa; con p
 | Credenciales BD | Fijas en `application-dev.yml` | Externalizadas en variables `TICKETERA_DB_*` (entorno o archivo `.env`) |
 | Credenciales admin | `admin`/`admin` (defaults) | Externalizadas en variables `ADMIN_USERNAME/PASSWORD` |
 | CORS | `http://localhost:5173` (default) | Externalizado en `CORS_ALLOWED_ORIGINS` |
-| Esquema | `ddl-auto: update` (crea/actualiza tablas) | `ddl-auto: validate` (solo valida contra las entidades) |
+| Esquema | `ddl-auto: update` (crea/actualiza tablas) | `ddl-auto: validate` (solo valida contra las entidades); en volumen nuevo lo crea `db/init-schema.sql` |
 | SQL en consola | Sí (`show-sql: true`) | No |
 | Swagger UI / api-docs | Habilitados | Bloqueados (propiedades + SecurityConfig) |
 | Datos semilla | `DevDataSeeder` inserta 3 ciudades y 4 eventos enriquecidos si las tablas están vacías | No corre (sin seed en producción) |
@@ -1068,6 +1075,8 @@ docker compose ps         # esperar el estado "healthy"
 ```
 
 Para detenerla conservando los datos: `docker compose stop`. Para reiniciarla desde cero borrando datos: `docker compose down -v`.
+
+El volumen se autoinicializa la primera vez: si está vacío, PostgreSQL ejecuta `db/init-schema.sql`, que crea el esquema exacto que el perfil prod valida. Por eso `docker compose up -d --build` (DB + API en perfil prod) funciona sobre una base **recién creada**, sin correr antes el perfil dev. En un volumen existente el script no se vuelve a ejecutar y los datos se conservan.
 
 ### Arrancar el microservicio en perfil dev
 
