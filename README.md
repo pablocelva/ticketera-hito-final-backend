@@ -932,10 +932,13 @@ Datos semilla del perfil dev:
 
 | Ciudad | Evento | Artista | Venue | Precio | Capacidad | Disponibles | Featured | Status |
 |---|---|---|---|---|---|---|---|---|
-| `LIM` Lima | `evt-jazz-001` Jazz Night | Miles Davis Quartet | Gran Teatro Lima | $25.000 | 500 | 500 | Sí | `ON_SALE` |
-| `LIM` Lima | `evt-rock-002` Rock Fest | AC/DC | Estadio Nacional | $55.000 | 5000 | 3800 (1200 reservadas) | No | `SCHEDULED` |
-| `MAD` Madrid | `evt-opera-003` La Traviata | Placido Domingo | Teatro Real Madrid | $120.000 | 800 | 0 (agotado) | Sí | `SOLD_OUT` |
-| `BOG` Bogota | `evt-fest-004` Bogota Music Festival | Various Artists | Parque Simon Bolivar | $80.000 | 10000 | 10000 | No | `SCHEDULED` |
+| `SCL` Santiago | `evt-braxton-001` Braxton Cook Live | Braxton Cook | Teatro Nescafé de las Artes | $45.000 | 800 | 800 | Sí | `ON_SALE` |
+| `SCL` Santiago | `evt-elena-002` Elena Pinderhughes Quintet | Elena Pinderhughes | Centro Cultural Gabriela Mistral | $55.000 | 600 | 450 | Sí | `SCHEDULED` |
+| `VAP` Valparaíso | `evt-internet-003` The Internet - Hive Mind Tour | The Internet | Teatro Caupolicán | $65.000 | 4500 | 4000 | Sí | `SCHEDULED` |
+| `VDA` Valdivia | `evt-genevieve-004` Genevieve Artadi Solo | Genevieve Artadi | Teatro del Lago | $48.000 | 1000 | 800 | No | `SCHEDULED` |
+| `SCL` Santiago | `evt-jazmin-005` Jazmin Sullivan - Heaux Tales | Jazmin Sullivan | Movistar Arena | $75.000 | 12000 | 9000 | Sí | `SCHEDULED` |
+| `VAP` Valparaíso | `evt-louis-006` Louis Cole - Quality Over Opinion | Louis Cole | Centro de Convenciones | $50.000 | 2000 | 1700 | No | `SCHEDULED` |
+| `VDA` Valdivia | `evt-terrace-007` Terrace Martin - Velvet Portraits | Terrace Martin | Teatro Municipal | $52.000 | 1500 | 1400 | Sí | `SCHEDULED` |
 
 > **Nota sobre `.env` y seguridad:** el perfil prod resuelve todas sus credenciales desde variables de entorno del sistema o desde el archivo `.env` (importado vía `spring.config.import`). El perfil prod no tiene defaults — si falta alguna variable, la app no arranca. `.env` está ignorado por git; solo se commitea la plantilla `.env.example`. La autenticación HTTP Basic protege las mutaciones admin (POST/PUT/DELETE events y cities). El CORS restringe los orígenes permitidos. Las passwords se almacenan con BCrypt en el `InMemoryUserDetailsManager`.
 
@@ -1065,78 +1068,173 @@ Este proyecto utiliza **JUnit 5**, **Mockito** y **AssertJ** (gestionados por el
 
 ## Instrucciones de ejecución
 
-### Levantar la base de datos con Docker
+> **Resumen rápido:** tres formas de levantar el stack completo (backend + DB), según el perfil y el modo de despliegue.
 
-Requisito previo: Docker Desktop en ejecución.
+---
+
+### 📋 Prerrequisitos comunes
+
+- **Java 17** + **Maven 3.9+** (o usar `./mvnw`)
+- **Docker Desktop** en ejecución
+- **Git** (para clonar el frontend si se desea)
+- **pnpm** (opcional, para el frontend)
+
+> 💡 **Nota sobre puertos:**
+> - Backend API: `8081`
+> - PostgreSQL: `5433` (host) → `5432` (contenedor)
+> - Frontend (Vite): `5173`
+
+---
+
+## 🚀 Perfil DEV (desarrollo local)
+
+> Perfil por defecto. Ideal para desarrollo: Swagger habilitado, `ddl-auto: update`, seed automático, logs SQL.
+
+### Opción A — Maven + Docker (recomendada para desarrollo)
 
 ```bash
-docker compose up -d      # inicia pg-ticketera
-docker compose ps         # esperar el estado "healthy"
-```
+# 1) Levantar solo la base de datos
+docker compose up -d db
 
-Para detenerla conservando los datos: `docker compose stop`. Para reiniciarla desde cero borrando datos: `docker compose down -v`.
+# 2) Verificar que la DB esté healthy
+docker compose ps db
+# Debe mostrar: STATUS "Up ... (healthy)"
 
-El volumen se autoinicializa la primera vez: si está vacío, PostgreSQL ejecuta `db/init-schema.sql`, que crea el esquema exacto que el perfil prod valida. Por eso `docker compose up -d --build` (DB + API en perfil prod) funciona sobre una base **recién creada**, sin correr antes el perfil dev. En un volumen existente el script no se vuelve a ejecutar y los datos se conservan.
-
-### Arrancar el microservicio en perfil dev
-
-Es el perfil por defecto: no requiere argumentos ni variables adicionales.
-
-```bash
+# 3) Arrancar el microservicio en perfil dev (puerto 8081)
 mvn spring-boot:run
+# o: ./mvnw spring-boot:run
 ```
 
-Al iniciar, `DevDataSeeder` siembra la cartelera si la tabla está vacía. Verificaciones rápidas:
+**Verificaciones:**
+- Swagger UI: <http://localhost:8081/swagger-ui.html> ✅
+- Cartelera (con seed): <http://localhost:8081/api/v1/events> ✅
+- Healthcheck: <http://localhost:8081/healthcheck> → `{"status":"UP"}` ✅
 
-- Swagger UI: `http://localhost:8081/swagger-ui.html`
-- Cartelera: `http://localhost:8081/api/v1/events`
+> 💡 El `DevDataSeeder` inserta 3 ciudades y 4 eventos si las tablas están vacías.
 
-### Arrancar el microservicio en perfil prod
+### Opción B — Todo en Docker (dev)
 
-Crear primero el `.env` local a partir de la plantilla (solo la primera vez):
+```bash
+# Construye la imagen y levanta DB + API en perfil dev
+# Nota: requiere ajustar compose.yaml para usar perfil dev (SPRING_PROFILES_ACTIVE=dev)
+docker compose -f compose.yaml -f compose.dev.yaml up -d --build
+# (compose.dev.yaml no incluido por defecto; usar Opción A)
+```
 
-```powershell
+---
+
+## 🏭 Perfil PROD (producción / demo final)
+
+> Perfil endurecido: `ddl-auto: validate`, Swagger bloqueado, credenciales externalizadas, sin seed.
+
+### Opción A — Spring Boot por consola + DB por Docker (recomendado para demo)
+
+> Ideal cuando quieres ver logs en consola y tener control total del proceso Java.
+
+```bash
+# 1) Levantar solo PostgreSQL
+docker compose up -d db
+
+# 2) Verificar DB healthy
+docker compose ps db
+# STATUS "Up ... (healthy)"
+
+# 3) Crear archivo .env (solo la primera vez)
+# Windows (PowerShell):
 Copy-Item .env.example .env
-```
+# Linux/macOS:
+cp .env.example .env
 
-Luego arrancar con el perfil activado:
+# 4) Editar .env si necesitas cambiar credenciales/CORS
+# Variables requeridas en .env:
+# TICKETERA_DB_URL=jdbc:postgresql://localhost:5433/ticketera_db
+# TICKETERA_DB_USERNAME=user_ticketera
+# TICKETERA_DB_PASSWORD=pass_ticketera
+# ADMIN_USERNAME=admin
+# ADMIN_PASSWORD=admin
+# CORS_ALLOWED_ORIGINS=http://localhost:5173
 
-```powershell
+# 4) Arrancar en perfil prod
 mvn spring-boot:run "-Dspring-boot.run.profiles=prod"
 ```
 
-En este perfil el esquema solo se valida (`ddl-auto: validate`) y Swagger queda bloqueado; ver [Perfiles de ejecución](#perfiles-de-ejecución).
+**Verificaciones:**
+- Healthcheck: <http://localhost:8081/healthcheck> → `200 OK`
+- Cartelera: <http://localhost:8081/api/v1/events> → `200` (array, puede estar vacío en prod)
+- Swagger bloqueado: <http://localhost:8081/swagger-ui.html> → **401/403** ✅
+- POST `/api/v1/events` sin auth → **401** ✅
+- POST `/api/v1/events` con `admin:admin` → **201** ✅
 
-### Verificar la persistencia en PostgreSQL
+> ⚠️ **Importante:** En prod el esquema se valida (`ddl-auto: validate`). Si la DB está vacía (volumen nuevo), el script `db/init-schema.sql` se ejecuta automáticamente al arrancar `docker compose up -d db` (gracias a `/docker-entrypoint-initdb.d/`). **No necesitas correr dev antes.**
 
-```bash
-docker exec -it pg-ticketera psql -U user_ticketera -d ticketera_db -c "SELECT id, name, artist, price, capacity, available_tickets, status, featured FROM events;"
-```
+---
 
-Tras registrar una compra, `available_tickets` debe reflejar el descuento correspondiente.
+### Opción B — Todo en Docker Compose (backend + DB juntos)
 
-### Compilar y verificar el proyecto
-
-```bash
-mvn clean compile
-```
-
-### Ejecutar la suite de pruebas unitarias
+> Todo en contenedores. Ideal para CI/CD, staging o demo portable.
 
 ```bash
-mvn test
+# 1) Asegúrate de tener .env creado (ver Opción A paso 3)
+# 2) Levantar stack completo (DB + API en prod)
+docker compose up -d --build
+
+# 3) Verificar ambos servicios
+docker compose ps
+# db:    Up ... (healthy)
+# api:   Up ... (healthy)
 ```
 
-### Generar el reporte de cobertura JaCoCo
+**Verificaciones:** mismas que Opción A.
 
-Para ejecutar la suite de tests y generar el reporte de cobertura:
+> 💡 `docker compose up -d --build` compila la imagen, ejecuta `db/init-schema.sql` en volumen nuevo y arranca la API en prod. Todo en un comando.
+
+---
+
+### Opción C — Stack completo: Backend (Docker) + Frontend (consola)
+
+> Para probar la integración completa frontend ↔ backend.
 
 ```bash
-mvn clean test jacoco:report
+# Terminal 1: Backend + DB (prod)
+docker compose up -d --build
+
+# Terminal 2: Frontend
+# 1) Clonar frontend (si no lo tienes)
+git clone https://github.com/pablocelva/ticketera-hito-final-frontend.git
+cd ticketera-hito-final-frontend
+
+# 2) Instalar dependencias
+pnpm install
+
+# 3) Configurar variable de entorno para que el frontend apunte al backend en prod
+# Crea .env.local en la raíz del frontend:
+echo "VITE_API_BASE_URL=http://localhost:8081" > .env.local
+
+# 4) Arrancar frontend
+pnpm run dev
+# Abre http://localhost:5173
 ```
 
-Después de ejecutar el comando, ver la evidencia de cobertura en:
-`target/site/jacoco/index.html`
+**Verificación end-to-end:**
+1. Abre <http://localhost:5173> → cartelera cargada desde backend prod
+2. Compra entradas → pedido 201, stock descuenta
+3. Ve a `/admin` → login `admin`/`admin` → crea ciudad → crea evento → aparece en cartelera
+
+> 💡 El frontend usa `VITE_API_BASE_URL` para saber dónde está la API. En dev usa proxy Vite; en prod apunta directo a `localhost:8081`.
+
+---
+
+## 🔧 Comandos de verificación rápidos
+
+| Qué verificar | Comando |
+|---|---|
+| Healthcheck | `curl http://localhost:8081/healthcheck` |
+| Cartelera | `curl http://localhost:8081/api/v1/events` |
+| Ciudades | `curl http://localhost:8081/api/v1/cities` |
+| Crear evento (admin) | `curl -X POST -u admin:admin -H "Content-Type: application/json" -d '{"cityId":1,"name":"Test","venue":"X","capacity":10,"eventDate":"2026-12-15T20:00:00","price":100}' http://localhost:8081/api/v1/events` |
+| Ver logs API (Docker) | `docker compose logs -f api` |
+| Ver logs DB (Docker) | `docker compose logs -f db` |
+| Reset DB completo | `docker compose down -v && docker compose up -d db` |
 
 ## Referencia rápida de comandos
 

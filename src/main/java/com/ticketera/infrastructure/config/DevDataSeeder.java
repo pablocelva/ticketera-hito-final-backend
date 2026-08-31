@@ -20,47 +20,72 @@ public class DevDataSeeder {
     CommandLineRunner seedData(CityRepository cityRepository, EventRepository eventRepository) {
         return args -> {
             if (cityRepository.findAll().isEmpty()) {
-                cityRepository.save(new City(null, "LIM", "Lima"));
-                cityRepository.save(new City(null, "BOG", "Bogota"));
-                cityRepository.save(new City(null, "MAD", "Madrid"));
+                cityRepository.save(new City(null, "SCL", "Santiago"));
+                cityRepository.save(new City(null, "VAP", "Valparaíso"));
+                cityRepository.save(new City(null, "VDA", "Valdivia"));
             }
 
             if (eventRepository.findAll().isEmpty()) {
-                var limaId = cityRepository.findByCode("LIM").map(c -> c.getId().value()).orElse(1L);
-                var bogId = cityRepository.findByCode("BOG").map(c -> c.getId().value()).orElse(2L);
-                var madId = cityRepository.findByCode("MAD").map(c -> c.getId().value()).orElse(3L);
+                var sclId = cityRepository.findByCode("SCL").map(c -> c.getId().value()).orElse(1L);
+                var vapId = cityRepository.findByCode("VAP").map(c -> c.getId().value()).orElse(2L);
+                var vdaId = cityRepository.findByCode("VDA").map(c -> c.getId().value()).orElse(3L);
 
-                var jazz = new Event(
-                    "evt-jazz-001", "Jazz Night", "Gran Teatro Lima", 500,
-                    "Miles Davis Quartet", LocalDateTime.of(2026, 12, 15, 20, 0), "20:00",
-                    25000.0, "/images/braxton.webp", true);
-                jazz.setCityId(limaId);
-                jazz.markOnSale();
+                var braxton = new Event(
+                        "evt-braxton-001", "Braxton Cook Live", "Teatro Nescafé de las Artes", 800,
+                        "Braxton Cook", LocalDateTime.of(2026, 12, 15, 20, 0), "20:00",
+                        45000.0, "/images/braxton.webp", true);
+                braxton.setCityId(sclId);
+                braxton.markOnSale();
 
-                var rock = new Event(
-                    "evt-rock-002", "Rock Fest", "Estadio Nacional", 5000,
-                    "AC/DC", LocalDateTime.of(2027, 3, 20, 21, 0), "21:00",
-                    55000.0, "/images/elena.webp", false);
-                rock.setCityId(limaId);
-                rock.reserveTickets(new TicketQuantity(1200));
+                var elena = new Event(
+                        "evt-elena-002", "Elena Pinderhughes Quintet", "Centro Cultural Gabriela Mistral", 600,
+                        "Elena Pinderhughes", LocalDateTime.of(2027, 1, 20, 21, 0), "21:00",
+                        55000.0, "/images/elena.webp", true);
+                elena.setCityId(sclId);
+                elena.reserveTickets(new TicketQuantity(150));
 
-                var opera = new Event(
-                    "evt-opera-003", "La Traviata", "Teatro Real Madrid", 800,
-                    "Placido Domingo", LocalDateTime.of(2027, 1, 10, 19, 0), "19:00",
-                    120000.0, "/images/genevieve.jfif", true);
-                opera.setCityId(madId);
-                opera.reserveTickets(new TicketQuantity(800));
+                var internet = new Event(
+                        "evt-internet-003", "The Internet - Hive Mind Tour", "Teatro Caupolicán", 4500,
+                        "The Internet", LocalDateTime.of(2027, 3, 10, 20, 0), "20:00",
+                        65000.0, "/images/internet.jfif", true);
+                internet.setCityId(vapId);
+                internet.reserveTickets(new TicketQuantity(500));
 
-                var festival = new Event(
-                    "evt-fest-004", "Bogota Music Festival", "Parque Simon Bolivar", 10000,
-                    "Various Artists", LocalDateTime.of(2027, 6, 1, 14, 0), "14:00",
-                    80000.0, "/images/terrace.jpg", false);
-                festival.setCityId(bogId);
+                var genevieve = new Event(
+                        "evt-genevieve-004", "Genevieve Artadi Solo", "Teatro del Lago", 1000,
+                        "Genevieve Artadi", LocalDateTime.of(2027, 2, 14, 19, 30), "19:30",
+                        48000.0, "/images/genevieve.jfif", false);
+                genevieve.setCityId(vdaId);
+                genevieve.reserveTickets(new TicketQuantity(200));
 
-                eventRepository.save(jazz);
-                eventRepository.save(rock);
-                eventRepository.save(opera);
-                eventRepository.save(festival);
+                var jazmin = new Event(
+                        "evt-jazmin-005", "Jazmin Sullivan - Heaux Tales", "Movistar Arena", 12000,
+                        "Jazmin Sullivan", LocalDateTime.of(2027, 4, 5, 21, 0), "21:00",
+                        75000.0, "/images/jazmin.jfif", true);
+                jazmin.setCityId(sclId);
+                jazmin.reserveTickets(new TicketQuantity(3000));
+
+                var louis = new Event(
+                        "evt-louis-006", "Louis Cole - Quality Over Opinion", "Centro de Convenciones", 2000,
+                        "Louis Cole", LocalDateTime.of(2027, 5, 12, 20, 0), "20:00",
+                        50000.0, "/images/louis.jpg", false);
+                louis.setCityId(vapId);
+                louis.reserveTickets(new TicketQuantity(300));
+
+                var terrace = new Event(
+                        "evt-terrace-007", "Terrace Martin - Velvet Portraits", "Teatro Municipal", 1500,
+                        "Terrace Martin", LocalDateTime.of(2027, 6, 21, 19, 0), "19:00",
+                        52000.0, "/images/terrace.jpg", true);
+                terrace.setCityId(vdaId);
+                terrace.reserveTickets(new TicketQuantity(100));
+
+                eventRepository.save(braxton);
+                eventRepository.save(elena);
+                eventRepository.save(internet);
+                eventRepository.save(genevieve);
+                eventRepository.save(jazmin);
+                eventRepository.save(louis);
+                eventRepository.save(terrace);
             }
         };
     }

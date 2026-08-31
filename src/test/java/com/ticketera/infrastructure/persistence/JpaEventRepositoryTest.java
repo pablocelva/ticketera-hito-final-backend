@@ -22,7 +22,7 @@ import com.ticketera.domain.valueobject.TicketQuantity;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@ActiveProfiles("dev")
+@ActiveProfiles("test")
 class JpaEventRepositoryTest {
 
     @Autowired

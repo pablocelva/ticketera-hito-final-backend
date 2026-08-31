@@ -44,14 +44,20 @@ CREATE TABLE IF NOT EXISTS tickets (
     created_at timestamp(6) without time zone
 );
 
--- Datos de prueba (solo se insertan en la primera ejecucion, cuando el volumen de datos está vacío)
+-- Datos semilla (solo se insertan en la primera ejecución, cuando el volumen de datos está vacío)
+-- Ciudades de Chile
 INSERT INTO cities (code, name) VALUES 
-('LIM', 'Lima'),
-('BOG', 'Bogotá'),
-('MAD', 'Madrid');
+('SCL', 'Santiago'),
+('VAP', 'Valparaíso'),
+('VDA', 'Valdivia');
 
+-- Eventos con artistas que tienen imágenes en el frontend
+-- IDs de ciudades: SCL=1, VAP=2, VDA=3 (orden de inserción)
 INSERT INTO events (code, city_id, name, venue, capacity, available_tickets, artist, event_date, event_time, price, image_url, featured, status) VALUES 
-('evt-jazz-001', 1, 'Jazz Night', 'Gran Teatro Lima', 500, 500, 'Miles Davis Quartet', '2026-12-15T20:00:00', '20:00', 25000.0, '/images/jazz.webp', true, 'ON_SALE'),
-('evt-rock-002', 2, 'Rock Fest', 'Estadio Nacional', 5000, 3800, 'AC/DC', '2026-12-20T19:00:00', '19:00', 55000.0, '/images/rock.webp', false, 'SCHEDULED'),
-('evt-opera-003', 3, 'La Traviata', 'Teatro Real Madrid', 800, 0, 'Placido Domingo', '2027-02-14T19:30:00', '19:30', 120000.0, '/images/opera.webp', true, 'SOLD_OUT'),
-('evt-fest-004', 2, 'Bogota Music Festival', 'Parque Simon Bolivar', 10000, 10000, 'Various Artists', '2026-11-30T18:00:00', '18:00', 80000.0, '/images/fest.webp', false, 'SCHEDULED');
+('evt-braxton-001', 1, 'Braxton Cook Live', 'Teatro Nescafé de las Artes', 800, 800, 'Braxton Cook', '2026-12-15T20:00:00', '20:00', 45000.0, '/images/braxton.webp', true, 'ON_SALE'),
+('evt-elena-002', 1, 'Elena Pinderhughes Quintet', 'Centro Cultural Gabriela Mistral', 600, 450, 'Elena Pinderhughes', '2027-01-20T21:00:00', '21:00', 55000.0, '/images/elena.webp', true, 'SCHEDULED'),
+('evt-internet-003', 2, 'The Internet - Hive Mind Tour', 'Teatro Caupolicán', 4500, 4000, 'The Internet', '2027-03-10T20:00:00', '20:00', 65000.0, '/images/internet.jfif', true, 'SCHEDULED'),
+('evt-genevieve-004', 3, 'Genevieve Artadi Solo', 'Teatro del Lago', 1000, 800, 'Genevieve Artadi', '2027-02-14T19:30:00', '19:30', 48000.0, '/images/genevieve.jfif', false, 'SCHEDULED'),
+('evt-jazmin-005', 1, 'Jazmin Sullivan - Heaux Tales', 'Movistar Arena', 12000, 9000, 'Jazmin Sullivan', '2027-04-05T21:00:00', '21:00', 75000.0, '/images/jazmin.jfif', true, 'SCHEDULED'),
+('evt-louis-006', 2, 'Louis Cole - Quality Over Opinion', 'Centro de Convenciones', 2000, 1700, 'Louis Cole', '2027-05-12T20:00:00', '20:00', 50000.0, '/images/louis.jpg', false, 'SCHEDULED'),
+('evt-terrace-007', 3, 'Terrace Martin - Velvet Portraits', 'Teatro Municipal', 1500, 1400, 'Terrace Martin', '2027-06-21T19:00:00', '19:00', 52000.0, '/images/terrace.jpg', true, 'SCHEDULED');
