@@ -87,7 +87,7 @@ public class ProcessOrderUseCase {
     }
 
     private Long resolveUserId(String customerEmail) {
-        if (customerEmail == null || customerEmail.isBlank()) {
+        if (customerEmail == null) {
             return null;
         }
         return userRepository.findByEmail(customerEmail)

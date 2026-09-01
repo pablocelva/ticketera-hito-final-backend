@@ -7,7 +7,7 @@
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 ![Security](https://img.shields.io/badge/Spring%20Security-JWT-6DB33F?logo=springsecurity&logoColor=white)
 ![Swagger](https://img.shields.io/badge/OpenAPI-Swagger%20UI-85EA2D?logo=swagger&logoColor=black)
-![JUnit](https://img.shields.io/badge/JUnit%205%20%2B%20Mockito%20%2B%20AssertJ-191%20tests-25A162?logo=junit5&logoColor=white)
+![JUnit](https://img.shields.io/badge/JUnit%205%20%2B%20Mockito%20%2B%20AssertJ-194%20tests-25A162?logo=junit5&logoColor=white)
 ![Coverage](https://img.shields.io/badge/cobertura-100%25-brightgreen)
 ![Bruno](https://img.shields.io/badge/contratos-Bruno%206%2F6-F6B93B)
 
@@ -1047,7 +1047,7 @@ Este proyecto utiliza **JUnit 5**, **Mockito** y **AssertJ** (gestionados por el
 - **AssertJ Fluent Assertions**: Se usa `assertThatThrownBy`, `assertThatCode` y `.as("descripción")` para assertions legibles y auto-documentantes.
 - **Parameterized Tests**: Se usa `@NullAndEmptySource` y `@ValueSource` para cubrir múltiples casos inválidos en un solo método.
 - **Excepciones de Negocio**: Las excepciones personalizadas se verifican exhaustivamente usando AssertJ's `assertThatThrownBy`.
-- **Cobertura 100%**: La suite garantiza 100% de cobertura de Líneas, Ramas y Métodos sobre las 32 clases analizadas por JaCoCo. Las interfaces/puertos (`application/port`) e `infrastructure` están excluidas del reporte.
+- **Cobertura 100%**: La suite garantiza 100% de cobertura de Líneas, Ramas, Métodos y Clases sobre las 36 clases analizadas por JaCoCo. Las interfaces/puertos (`application/port`) e `infrastructure` están excluidas del reporte.
 
 ### Resumen de cobertura por clase
 
@@ -1057,7 +1057,8 @@ Este proyecto utiliza **JUnit 5**, **Mockito** y **AssertJ** (gestionados por el
 | `TicketPool` | 9 | `capacity ≤ 0`, `quantity ≤ 0`, `quantity > available`, éxito, pool vacío, reconstitución válida e inválida (disponibles fuera de rango, capacidad no positiva) |
 | `Customer` | 5 | Creación válida (incluye `getEmail()`), `id` null/blank, `name` null/blank |
 | `City` | 8 | Creación válida, `code` null/blank, `name` null/blank, rename éxito/null/blank |
-| `Ticket` | 7 | Creación legacy (datos completos, email blank → null), creación con cliente anonymous, creación enriquecida (orderId, unitPrice, totalAmount, status, createdAt), customerName blank → excepción, customerName null → excepción, email null anónimo |
+| `Ticket` | 9 | Creación legacy (datos completos, email blank → null), creación con cliente anonymous, creación enriquecida (orderId, unitPrice, totalAmount, status, createdAt), customerName blank → excepción, customerName null → excepción, email null anónimo, ticket enriquecido con `userId` mantiene el usuario vinculado, ticket enriquecido sin `userId` permanece anónimo |
+| `User` | 8 | Creación con defaults (rol `ROLE_USER`, `createdAt` actual), rol `ROLE_ADMIN` preservado, `fullName` blank/null → excepción, password blank/null → excepción, email inválido → `InvalidEmailException`, trim de `fullName` |
 | `TicketQuantity` | 4 | Valor válido, `quantity ≤ 0` (parameterized: 0, -1, -10) |
 | `Money` | 4 | Valor válido, `price ≤ 0` (parameterized: 0.0, -1.0, -100.0) |
 | `Email` | 6 | Normalización, null/blank/vacío (parameterized), sin `@`, sin dominio |
@@ -1066,7 +1067,8 @@ Este proyecto utiliza **JUnit 5**, **Mockito** y **AssertJ** (gestionados por el
 | `OrderStatus` | 4 | Verificar los 3 valores del enum, resolución por `valueOf()`, nombre correcto, `IllegalArgumentException` para nombre inválido |
 | `TicketId` | 5 | Valor válido, trim, null/blank (parameterized) |
 | `CityId` | 7 | Valor válido, `null`, equals mismo valor, equals distinto valor, equals distinto tipo, equals misma referencia, hashCode consistente |
-| `ProcessOrderUseCase` | 8 | `eventId` null/vacío, `quantity` 0/negativo, evento no encontrado, éxito con respuesta enriquecida (id, unitPrice, totalPrice, status, createdAt), cliente anónimo (null), cliente con nombre/email, email blank tratado como anónimo, success with full order result |
+| `ProcessOrderUseCase` | 11 | `eventId` null/vacío, `quantity` 0/negativo, evento no encontrado, éxito con respuesta enriquecida (id, unitPrice, totalPrice, status, createdAt), cliente anónimo (null), cliente con nombre/email, email blank tratado como anónimo, email de solo espacios tratado como anónimo, ticket vinculado al usuario registrado por email (`userId`), ticket sin usuario registrado deja `userId` null |
+| `AuthUseCase` | 4 | `register` crea usuario `ROLE_USER` y lo persiste, `register` lanza `UserAlreadyExistsException` si el email ya existe, `findByEmail` devuelve el usuario cuando existe, `findByEmail` lanza `IllegalArgumentException` cuando no existe |
 | `SendBookingConfirmationUseCase` | 3 | Email null/vacío, éxito |
 | `CreateEventUseCase` | 6 | Creación válida con `cityId` (id generado + persistencia + verificación de `getCityId()`), validación delegada al dominio, aplicación de `status` (`ON_SALE`, `SOLD_OUT`, `CANCELED`) y default `SCHEDULED` cuando es null |
 | `GetEventDetailsUseCase` | 2 | Evento encontrado, `EventNotFoundException` cuando no existe |
@@ -1085,8 +1087,8 @@ Este proyecto utiliza **JUnit 5**, **Mockito** y **AssertJ** (gestionados por el
 | `JpaEventRepositoryTest` | 3 | Persistencia: crear y recuperar, reservar entradas, listar todos (excluido del reporte de cobertura) |
 | `ApiResponseTest` | 4 | OK con nombre, OK sin nombre, error, timestamp (excluido del reporte de cobertura) |
 | `GlobalExceptionHandlerTest` | 6 | Corte web MockMvc: 404 Events, 404 Cities, 422 SoldOut, 400 validación, 409 conflicto, 500 inesperado (excluido del reporte de cobertura) |
-| `SecurityConfigTest` | 10 | Integración Spring Security: GET público (events, cities, healthcheck, orders), POST sin auth → 401, POST con wrong pass → 401, POST con credenciales correctas → 400, PUT/DELETE sin auth → 401 (excluido del reporte de cobertura) |
-| **Total** | **179 tests (136 unitarios + 43 de integración/web)** | **100% líneas, 100% métodos, 100% ramas** sobre las 32 clases analizadas |
+| `SecurityConfigTest` | 8 | Integración Spring Security: GET público (events, cities, healthcheck, orders), register → 201 con token, login con credenciales incorrectas → 401, POST sin token → 403, POST con token `ROLE_ADMIN` válido → permitido (excluido del reporte de cobertura) |
+| **Total** | **194 tests (153 unitarios + 41 de integración/web)** | **100% líneas, 100% métodos, 100% ramas** sobre las 36 clases analizadas |
 
 ¹ Las interfaces/puertos (`application/port/`) y la capa `infrastructure` están excluidas del reporte JaCoCo por ser contratos sin código ejecutable y detalles técnicos respectivamente.
 
@@ -1285,7 +1287,7 @@ mvn spring-boot:run "-Dspring-boot.run.profiles=prod"       # perfil prod
 
 ```bash
 mvn clean compile                                           # compilar
-mvn test                                                    # ejecutar 179 tests
+mvn test                                                    # ejecutar 194 tests
 mvn clean test jacoco:report                                # tests + reporte de cobertura
 bru run --env local                                         # tests de contrato (requiere app levantada)
 ```

@@ -8,6 +8,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -42,6 +43,7 @@ class JpaEventRepositoryTest {
     }
 
     @Test
+    @DisplayName("Persists and recovers an event aggregate with all fields")
     void persistsAndRecoversAggregateWithAllFields() {
         Event event = Event.reconstitute(null, new EventId("evt-test-1"),
             new CityId(1L), "Jazz Night", "Teatro", 100, 90,
@@ -65,6 +67,7 @@ class JpaEventRepositoryTest {
     }
 
     @Test
+    @DisplayName("Persists reservations made on the aggregate")
     void persistsReservationsMadeOnAggregate() {
         Event event = Event.reconstitute(null, new EventId("evt-test-2"),
             new CityId(1L), "Rock Fest", "Estadio", 1000, 500,
@@ -79,6 +82,7 @@ class JpaEventRepositoryTest {
     }
 
     @Test
+    @DisplayName("Lists all persisted events")
     void listsAllPersistedEvents() {
         repository.save(Event.reconstitute(null, new EventId("evt-a"),
             new CityId(1L), "A", "V1", 10, 10,

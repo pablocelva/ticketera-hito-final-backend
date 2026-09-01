@@ -145,6 +145,18 @@ class ProcessOrderUseCaseTest {
     }
 
     @Test
+    @DisplayName("Whitespace-only email is treated as anonymous")
+    void whitespaceOnlyEmailIsTreatedAsAnonymous() {
+        OrderResult result = useCase.execute(1L, 1, "Juan", "   ");
+
+        assertThat(result.customerName()).isEqualTo("Juan");
+        assertThat(result.customerEmail()).isNull();
+        verify(ticketRepository).save(argThat(ticket ->
+            ticket.getCustomerName().equals("Juan")
+                && ticket.getCustomerEmail() == null));
+    }
+
+    @Test
     @DisplayName("Links ticket to registered user when email matches an account")
     void linksTicketToRegisteredUser() {
         when(userRepository.findByEmail("pablo@test.com"))
