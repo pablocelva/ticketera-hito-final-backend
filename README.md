@@ -5,9 +5,9 @@
 ![Maven](https://img.shields.io/badge/Maven-Build-C71A36?logo=apachemaven&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
-![Security](https://img.shields.io/badge/Spring%20Security-HTTP%20Basic-6DB33F?logo=springsecurity&logoColor=white)
+![Security](https://img.shields.io/badge/Spring%20Security-JWT-6DB33F?logo=springsecurity&logoColor=white)
 ![Swagger](https://img.shields.io/badge/OpenAPI-Swagger%20UI-85EA2D?logo=swagger&logoColor=black)
-![JUnit](https://img.shields.io/badge/JUnit%205%20%2B%20Mockito%20%2B%20AssertJ-179%20tests-25A162?logo=junit5&logoColor=white)
+![JUnit](https://img.shields.io/badge/JUnit%205%20%2B%20Mockito%20%2B%20AssertJ-191%20tests-25A162?logo=junit5&logoColor=white)
 ![Coverage](https://img.shields.io/badge/cobertura-100%25-brightgreen)
 ![Bruno](https://img.shields.io/badge/contratos-Bruno%206%2F6-F6B93B)
 
@@ -17,7 +17,7 @@ Ticketera es un sistema de venta de entradas para eventos independientes. Este r
 
 **Ciclo de vida del evento:** el dominio modela las transiciones de estado con reglas de negocio (`markOnSale()`, `markSoldOut()`, `markCanceled()`), `SOLD_OUT` automático al agotarse las entradas, y `status` opcional en creación y actualización. Las respuestas calculan el estado vigente con `effectiveStatus()`: `CANCELED` y `SOLD_OUT` tienen precedencia y `FINISHED` se deriva cuando el evento ya pasó; el estado persistido queda acotado a `SCHEDULED`, `ON_SALE`, `SOLD_OUT` y `CANCELED`.
 
-**Seguridad:** HTTP Basic auth para mutaciones admin, CORS centralizado via `CorsConfigurationSource`, passwords con BCrypt, sesiones stateless, Dockerfile con usuario no-root.
+**Seguridad:** autenticación **JWT stateless** con usuarios reales almacenados en PostgreSQL (`users`), roles (`ROLE_ADMIN` para las mutaciones del panel admin), CORS centralizado via `CorsConfigurationSource` y passwords con BCrypt. `POST /api/v1/auth/login` emite el token y `POST /api/v1/auth/register` crea cuentas nuevas.
 
 ## Links del proyecto
 
@@ -87,7 +87,7 @@ Repositorios que sirven de base a este proyecto:
 | `spring-boot-starter-validation` | gestionada por Spring Boot | Validación declarativa con Jakarta Bean Validation (`@Valid`, `@NotBlank`, etc.) |
 | `spring-boot-starter-data-jpa` | gestionada por Spring Boot | Persistencia con Spring Data JPA e Hibernate |
 | `postgresql` | gestionada por Spring Boot | Driver JDBC de PostgreSQL (scope `runtime`) |
-| `spring-boot-starter-security` | gestionada por Spring Boot | Autenticación HTTP Basic para mutaciones admin |
+| `spring-boot-starter-security` | gestionada por Spring Boot | Autenticación JWT stateless (login/register) y autorización por roles para las mutaciones admin |
 | `springdoc-openapi-starter-webmvc-ui` | 2.8.9 | Especificación OpenAPI 3 y Swagger UI interactiva |
 
 ### Dependencias de testing (scope: test)
@@ -289,19 +289,19 @@ hito4-backend-spring-boot/
 |---|---|
 | `ApplicationConfig.java` | Clase `@Configuration` que actúa como *composition root*: registra los catorce casos de uso como beans (`@Bean`), inyectándoles los adaptadores de infraestructura. Mantiene `domain` y `application` libres de anotaciones de framework. |
 | `OpenApiConfig.java` | Bean `OpenAPI` con la metadata de la documentación. Anotado con `@Profile("dev")`: fuera del perfil dev ni siquiera se registra en el contexto. |
-| `DevDataSeeder.java` | `CommandLineRunner` acotado al perfil `dev`: siembra tres ciudades (`LIM` Lima, `BOG` Bogotá, `MAD` Madrid) y cuatro eventos enriquecidos (Jazz Night, Rock Fest, La Traviata, Bogota Music Festival) con artist, date, price, imageUrl, featured y estados de negocio reales (Jazz Night `ON_SALE`, La Traviata agotada `SOLD_OUT`) si las tablas están vacías. |
-| `SecurityConfig.java` | `@Configuration` con `@EnableWebSecurity`: define un `SecurityFilterChain` con HTTP Basic, CSRF deshabilitado (API stateless), sesiones `STATELESS` y CORS centralizado via `CorsConfigurationSource`. Lectura pública (GET events/cities/tickets, POST orders, healthcheck, Swagger en dev). Mutaciones admin protegidas (POST/PUT/DELETE events y cities). Credenciales admin en `InMemoryUserDetailsManager` con BCrypt. |
+| `DevDataSeeder.java` | `CommandLineRunner` acotado al perfil `dev` (`@Profile("dev")`, no corre en prod): siembra el **usuario admin** (`admin@ticketera.com` / `admin123!`, rol `ROLE_ADMIN`) y, si las tablas están vacías, tres ciudades (`LIM` Lima, `BOG` Bogotá, `MAD` Madrid) y cuatro eventos enriquecidos (Jazz Night, Rock Fest, La Traviata, Bogota Music Festival) con artist, date, price, imageUrl, featured y estados de negocio reales (Jazz Night `ON_SALE`, La Traviata agotada `SOLD_OUT`). |
+| `SecurityConfig.java` | `@Configuration` con `@EnableWebSecurity`: define un `SecurityFilterChain` con **JWT stateless**, CSRF deshabilitado (API stateless), sesiones `STATELESS` y CORS centralizado via `CorsConfigurationSource`. Registra `JwtAuthenticationFilter` antes del filtro de autenticación por usuario/contraseña y un `DaoAuthenticationProvider` apoyado en `CustomUserDetailsService` (que carga los usuarios de la tabla `users`). Lectura pública (GET events/cities/tickets, POST orders, healthcheck, `/api/v1/auth/**`, Swagger en dev). Mutaciones admin protegidas con rol `ROLE_ADMIN` (POST/PUT/DELETE events y cities). Passwords con BCrypt. |
 
 **Recursos de configuración e infraestructura local:**
 
 | Archivo | Responsabilidad |
 |---|---|
 | `src/main/resources/application.yml` | Configuración común: puerto `8081`, nombre de la aplicación y perfil por defecto (`dev`). |
-| `src/main/resources/application-dev.yml` | Perfil desarrollo: credenciales locales de Docker, `ddl-auto: update`, SQL en consola, Swagger habilitado, CORS permitido desde `localhost:5173` y credenciales admin (`admin`/`admin`). |
-| `src/main/resources/application-prod.yml` | Perfil producción: credenciales externalizadas (`TICKETERA_DB_URL/USERNAME/PASSWORD`, `ADMIN_USERNAME/PASSWORD`, `CORS_ALLOWED_ORIGINS`), `ddl-auto: validate`, SQL silencioso y Swagger deshabilitado. Importa opcionalmente el archivo `.env`. |
+| `src/main/resources/application-dev.yml` | Perfil desarrollo: credenciales locales de Docker, `ddl-auto: update`, SQL en consola, Swagger habilitado, CORS permitido desde `localhost:5173` y secret/firma JWT con valores de ejemplo (`JWT_SECRET`, `JWT_EXPIRATION_MS`). |
+| `src/main/resources/application-prod.yml` | Perfil producción: credenciales externalizadas (`TICKETERA_DB_URL/USERNAME/PASSWORD`, `JWT_SECRET`, `JWT_EXPIRATION_MS`, `CORS_ALLOWED_ORIGINS`), `ddl-auto: validate`, SQL silencioso y Swagger deshabilitado. Importa opcionalmente el archivo `.env`. |
 | `compose.yaml` | Docker Compose con dos servicios: `db` (PostgreSQL 16 para desarrollo) y `api` (build multi-stage desde Dockerfile, perfil prod, dependencia de DB healthy). El servicio `db` monta `db/init-schema.sql` en `/docker-entrypoint-initdb.d/` para inicializar el esquema automáticamente en un volumen vacío. |
-| `db/init-schema.sql` | DDL PostgreSQL que replica el esquema que generan las entidades JPA. Se ejecuta una sola vez, en el primer arranque del contenedor `db` con el volumen de datos vacío, y deja el esquema listo para que el perfil prod (`ddl-auto: validate`) pueda validar contra tablas existentes. |
-| `.env.example` | Plantilla commiteada con todas las variables: BD (`TICKETERA_DB_*`), admin (`ADMIN_USERNAME/PASSWORD`) y CORS (`CORS_ALLOWED_ORIGINS`). Se copia a `.env` (ignorado por git). |
+| `db/init-schema.sql` | DDL PostgreSQL que replica el esquema que generan las entidades JPA (`cities`, `events`, `tickets` y `users`). Se ejecuta una sola vez, en el primer arranque del contenedor `db` con el volumen de datos vacío, y deja el esquema listo para que el perfil prod (`ddl-auto: validate`) pueda validar contra tablas existentes. |
+| `.env.example` | Plantilla commiteada con todas las variables: BD (`TICKETERA_DB_*`), JWT (`JWT_SECRET`, `JWT_EXPIRATION_MS`) y CORS (`CORS_ALLOWED_ORIGINS`). Se copia a `.env` (ignorado por git). |
 
 **Entidades (Aggregate Roots):**
 
@@ -453,10 +453,20 @@ erDiagram
         double unit_price "Precio unitario"
         double total_amount "Precio total"
         varchar status "Estado de la orden"
+        bigint user_id FK "Usuario registrado (opcional)"
+        datetime created_at "Fecha de creacion"
+    }
+    USERS {
+        bigint id PK "Auto-generado"
+        varchar email UK "Email del usuario"
+        varchar full_name "Nombre completo"
+        varchar encoded_password "Password (BCrypt)"
+        varchar role "Rol (ROLE_ADMIN / ROLE_USER)"
         datetime created_at "Fecha de creacion"
     }
     CITIES ||--o{ EVENTS : "tiene"
     EVENTS ||--o{ TICKETS : "genera"
+    USERS ||--o{ TICKETS : "registra"
 ```
 
 ## Lenguaje Ubicuo
@@ -488,16 +498,18 @@ La capa web expone rutas semánticas bajo `/api/v1` con los verbos HTTP correspo
 |---|---|---|---|---|---|
 | `GET` | `/api/v1/events` | público | Cartelera completa | 200 | — |
 | `GET` | `/api/v1/events/{id}` | público | Detalle de un evento | 200 | 404 |
-| `POST` | `/api/v1/events` | admin (Basic) | Crea un evento | 201 | 400, 401 |
-| `PUT` | `/api/v1/events/{id}` | admin (Basic) | Actualiza todos los campos del evento | 200 | 400, 401, 404 |
-| `DELETE` | `/api/v1/events/{id}` | admin (Basic) | Elimina un evento sin ventas | 204 | 401, 404, 409 |
+| `POST` | `/api/v1/auth/register` | público | Crea un usuario y devuelve token JWT | 201 | 400, 409 |
+| `POST` | `/api/v1/auth/login` | público | Inicia sesión y devuelve token JWT | 200 | 401 |
+| `POST` | `/api/v1/events` | admin (JWT) | Crea un evento | 201 | 400, 401 |
+| `PUT` | `/api/v1/events/{id}` | admin (JWT) | Actualiza todos los campos del evento | 200 | 400, 401, 404 |
+| `DELETE` | `/api/v1/events/{id}` | admin (JWT) | Elimina un evento sin ventas | 204 | 401, 404, 409 |
 | `GET` | `/api/v1/events/{id}/tickets` | público | Entradas vendidas de un evento | 200 | 404 |
 | `POST` | `/api/v1/orders` | público | Compra entradas y confirma la reserva | 201 | 400, 404, 422 |
 | `GET` | `/api/v1/cities` | público | Lista de ciudades | 200 | — |
 | `GET` | `/api/v1/cities/{id}` | público | Detalle de una ciudad | 200 | 404 |
-| `POST` | `/api/v1/cities` | admin (Basic) | Crea una ciudad | 201 | 400, 401 |
-| `PUT` | `/api/v1/cities/{id}` | admin (Basic) | Actualiza nombre de ciudad | 200 | 401, 404 |
-| `DELETE` | `/api/v1/cities/{id}` | admin (Basic) | Elimina una ciudad | 204 | 401, 404 |
+| `POST` | `/api/v1/cities` | admin (JWT) | Crea una ciudad | 201 | 400, 401 |
+| `PUT` | `/api/v1/cities/{id}` | admin (JWT) | Actualiza nombre de ciudad | 200 | 401, 404 |
+| `DELETE` | `/api/v1/cities/{id}` | admin (JWT) | Elimina una ciudad | 204 | 401, 404 |
 
 ### Manejo global de errores
 
@@ -903,7 +915,7 @@ Resultado verificado: con perfil `dev` la consola es plenamente operativa; con p
 
 ### Esquema inicial en base nueva
 
-El perfil prod usa `ddl-auto: validate`, que **valida** el esquema contra las entidades pero **no lo crea**. Para que una base recién creada (volumen vacío) arranque sin pasos previos, el contenedor `db` ejecuta `db/init-schema.sql` en su primer inicio (directorio `/docker-entrypoint-initdb.d`). Ese script replica exactamente el esquema que generan las entidades JPA (`cities`, `events`, `tickets`), por lo que el `validate` del perfil prod pasa desde el primer arranque.
+El perfil prod usa `ddl-auto: validate`, que **valida** el esquema contra las entidades pero **no lo crea**. Para que una base recién creada (volumen vacío) arranque sin pasos previos, el contenedor `db` ejecuta `db/init-schema.sql` en su primer inicio (directorio `/docker-entrypoint-initdb.d`). Ese script replica exactamente el esquema que generan las entidades JPA (`cities`, `events`, `tickets`, `users`), por lo que el `validate` del perfil prod pasa desde el primer arranque.
 
 ### Credenciales
 
@@ -911,9 +923,14 @@ El perfil prod usa `ddl-auto: validate`, que **valida** el esquema contra las en
 |---|---|---|
 | `TICKETERA_DB_USERNAME` | `user_ticketera` | Variable de entorno requerida |
 | `TICKETERA_DB_PASSWORD` | `pass_ticketera` | Variable de entorno requerida |
-| `ADMIN_USERNAME` | `admin` | Variable de entorno requerida |
-| `ADMIN_PASSWORD` | `admin` | Variable de entorno requerida |
+| `JWT_SECRET` | Secret de ejemplo en `application-dev.yml` | Variable de entorno requerida (secreto fuerte) |
+| `JWT_EXPIRATION_MS` | `86400000` (24 h) | Externalizada (default `86400000`) |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Variable de entorno requerida |
+
+> **Nota:** la autenticación ya no usa `ADMIN_USERNAME/ADMIN_PASSWORD` (se eliminaron con la migración a JWT).
+> El **usuario admin se siembra solo en el perfil dev** (`admin@ticketera.com` / `admin123!`, rol
+> `ROLE_ADMIN`) vía `DevDataSeeder`. En el perfil `prod` **no hay seed**: el admin debe crearse con
+> `POST /api/v1/auth/register` (o provisionarse en la base) antes de usar las mutaciones del panel.
 
 ## Perfiles de ejecución
 
@@ -921,12 +938,12 @@ El perfil prod usa `ddl-auto: validate`, que **valida** el esquema contra las en
 |---|---|---|
 | Activación | Automática (`spring.profiles.default: dev`) | `-Dspring-boot.run.profiles=prod` |
 | Credenciales BD | Fijas en `application-dev.yml` | Externalizadas en variables `TICKETERA_DB_*` (entorno o archivo `.env`) |
-| Credenciales admin | `admin`/`admin` (defaults) | Externalizadas en variables `ADMIN_USERNAME/PASSWORD` |
+| Auth / seguridad | JWT stateless; admin sembrado `admin@ticketera.com` / `admin123!` (`ROLE_ADMIN`) | JWT stateless; **sin seed** (crear admin vía `/api/v1/auth/register`) |
 | CORS | `http://localhost:5173` (default) | Externalizado en `CORS_ALLOWED_ORIGINS` |
 | Esquema | `ddl-auto: update` (crea/actualiza tablas) | `ddl-auto: validate` (solo valida contra las entidades); en volumen nuevo lo crea `db/init-schema.sql` |
 | SQL en consola | Sí (`show-sql: true`) | No |
 | Swagger UI / api-docs | Habilitados | Bloqueados (propiedades + SecurityConfig) |
-| Datos semilla | `DevDataSeeder` inserta 3 ciudades y 4 eventos enriquecidos si las tablas están vacías | No corre (sin seed en producción) |
+| Datos semilla | `DevDataSeeder` inserta el admin, 3 ciudades y 4 eventos enriquecidos si las tablas están vacías | No corre (sin seed en producción) |
 
 Datos semilla del perfil dev:
 
@@ -940,33 +957,40 @@ Datos semilla del perfil dev:
 | `VAP` Valparaíso | `evt-louis-006` Louis Cole - Quality Over Opinion | Louis Cole | Centro de Convenciones | $50.000 | 2000 | 1700 | No | `SCHEDULED` |
 | `VDA` Valdivia | `evt-terrace-007` Terrace Martin - Velvet Portraits | Terrace Martin | Teatro Municipal | $52.000 | 1500 | 1400 | Sí | `SCHEDULED` |
 
-> **Nota sobre `.env` y seguridad:** el perfil prod resuelve todas sus credenciales desde variables de entorno del sistema o desde el archivo `.env` (importado vía `spring.config.import`). El perfil prod no tiene defaults — si falta alguna variable, la app no arranca. `.env` está ignorado por git; solo se commitea la plantilla `.env.example`. La autenticación HTTP Basic protege las mutaciones admin (POST/PUT/DELETE events y cities). El CORS restringe los orígenes permitidos. Las passwords se almacenan con BCrypt en el `InMemoryUserDetailsManager`.
+> **Nota sobre `.env` y seguridad:** el perfil prod resuelve todas sus credenciales desde variables de entorno del sistema o desde el archivo `.env` (importado vía `spring.config.import`). El perfil prod no tiene defaults — si falta alguna variable (incluido `JWT_SECRET`), la app no arranca. `.env` está ignorado por git; solo se commitea la plantilla `.env.example`. La autenticación **JWT stateless** protege las mutaciones admin (POST/PUT/DELETE events y cities) exigiendo el rol `ROLE_ADMIN` en el token. El CORS restringe los orígenes permitidos. Las passwords se almacenan con **BCrypt** en la tabla `users` (PostgreSQL).
 
 ### Verificación del aislamiento (receta del evaluador)
 
 Con Docker y la base de datos levantados:
 
 ```powershell
-# 1) Perfil dev: Swagger visible, mutaciones requieren admin
+# 0) Login (perfil dev) para obtener el token JWT del admin sembrado
+$TOKEN = (Invoke-RestMethod -Method Post -Uri http://localhost:8081/api/v1/auth/login `
+  -ContentType "application/json" `
+  -Body '{"email":"admin@ticketera.com","password":"admin123!"}').token
+
+# 1) Perfil dev: Swagger visible, mutaciones requieren token admin
 mvn spring-boot:run
 #    -> http://localhost:8081/swagger-ui.html opera con normalidad
-#    -> POST /api/v1/events sin credenciales → 401
-#    -> POST /api/v1/events con admin:admin → 201
+#    -> POST /api/v1/events sin token → 401
+#    -> POST /api/v1/events con "Authorization: Bearer $TOKEN" → 201
 
 # 2) Perfil prod: Swagger bloqueado, API operativa (crear .env solo la primera vez)
 Copy-Item .env.example .env
 mvn spring-boot:run "-Dspring-boot.run.profiles=prod"
-#    -> POST /api/v1/events con admin:admin → 201
+#    -> Login igual en /api/v1/auth/login (admin creado previamente)
+#    -> POST /api/v1/events con "Authorization: Bearer $TOKEN" → 201
 #    -> /swagger-ui.html → bloqueado
 ```
 
 | URL con perfil prod activo | Resultado esperado |
 |---|---|
 | `/api/v1/events` | 200 con la cartelera |
+| `/api/v1/auth/login` | 200 con `{ token, id, email, fullName, role }` (credenciales válidas) |
 | `/swagger-ui.html` | Bloqueada (error; sin consola interactiva) |
 | `/v3/api-docs` | Bloqueada (sin especificación expuesta) |
-| `POST /api/v1/events` sin auth | 401 Unauthorized |
-| `POST /api/v1/events` con auth | 201 (body válido) |
+| `POST /api/v1/events` sin token | 401 Unauthorized |
+| `POST /api/v1/events` con token `ROLE_ADMIN` | 201 (body válido) |
 
 ## Pruebas de contrato (Bruno)
 
@@ -975,7 +999,7 @@ La colección [`bruno/ticketera-api`](bruno/ticketera-api) verifica los contrato
 | # | Request | Verifica |
 |---|---|---|
 | 01 | `GET /api/v1/events` | 200 y cuerpo tipo array |
-| 02 | `POST /api/v1/events` (auth: basic admin) | 201 con el evento creado y su stock completo |
+| 02 | `POST /api/v1/events` (auth: token JWT admin) | 201 con el evento creado y su stock completo |
 | 03 | `POST /api/v1/orders` (2 entradas, evento creado) | 201 e inventario descontado |
 | 04 | `POST /api/v1/orders` (cantidad mayor al stock) | 422 con JSON unificado |
 | 05 | `POST /api/v1/orders` (`eventId` inexistente) | 404 con JSON unificado |
@@ -1110,7 +1134,7 @@ mvn spring-boot:run
 - Cartelera (con seed): <http://localhost:8081/api/v1/events> ✅
 - Healthcheck: <http://localhost:8081/healthcheck> → `{"status":"UP"}` ✅
 
-> 💡 El `DevDataSeeder` inserta 3 ciudades y 4 eventos si las tablas están vacías.
+> 💡 El `DevDataSeeder` (perfil dev) inserta el admin `admin@ticketera.com` / `admin123!` (`ROLE_ADMIN`), 3 ciudades y 4 eventos si las tablas están vacías.
 
 ### Opción B — Todo en Docker (dev)
 
@@ -1125,7 +1149,7 @@ docker compose -f compose.yaml -f compose.dev.yaml up -d --build
 
 ## 🏭 Perfil PROD (producción / demo final)
 
-> Perfil endurecido: `ddl-auto: validate`, Swagger bloqueado, credenciales externalizadas, sin seed.
+> Perfil endurecido: `ddl-auto: validate`, Swagger bloqueado, credenciales/JWT externalizadas, sin seed (crear admin vía `/api/v1/auth/register`).
 
 ### Opción A — Spring Boot por consola + DB por Docker (recomendado para demo)
 
@@ -1150,8 +1174,8 @@ cp .env.example .env
 # TICKETERA_DB_URL=jdbc:postgresql://localhost:5433/ticketera_db
 # TICKETERA_DB_USERNAME=user_ticketera
 # TICKETERA_DB_PASSWORD=pass_ticketera
-# ADMIN_USERNAME=admin
-# ADMIN_PASSWORD=admin
+# JWT_SECRET=<secreto fuerte>
+# JWT_EXPIRATION_MS=86400000
 # CORS_ALLOWED_ORIGINS=http://localhost:5173
 
 # 4) Arrancar en perfil prod
@@ -1162,8 +1186,8 @@ mvn spring-boot:run "-Dspring-boot.run.profiles=prod"
 - Healthcheck: <http://localhost:8081/healthcheck> → `200 OK`
 - Cartelera: <http://localhost:8081/api/v1/events> → `200` (array, puede estar vacío en prod)
 - Swagger bloqueado: <http://localhost:8081/swagger-ui.html> → **401/403** ✅
-- POST `/api/v1/events` sin auth → **401** ✅
-- POST `/api/v1/events` con `admin:admin` → **201** ✅
+- POST `/api/v1/events` sin token → **401** ✅
+- Login/crear admin → `POST /api/v1/auth/login` / `POST /api/v1/auth/register` → **200/201**, luego `Authorization: Bearer <token>` → **201** ✅
 
 > ⚠️ **Importante:** En prod el esquema se valida (`ddl-auto: validate`). Si la DB está vacía (volumen nuevo), el script `db/init-schema.sql` se ejecuta automáticamente al arrancar `docker compose up -d db` (gracias a `/docker-entrypoint-initdb.d/`). **No necesitas correr dev antes.**
 
@@ -1218,7 +1242,7 @@ pnpm run dev
 **Verificación end-to-end:**
 1. Abre <http://localhost:5173> → cartelera cargada desde backend prod
 2. Compra entradas → pedido 201, stock descuenta
-3. Ve a `/admin` → login `admin`/`admin` → crea ciudad → crea evento → aparece en cartelera
+3. Ve a `/admin` → login con `admin@ticketera.com` / `admin123!` (perfil dev) o con el admin creado en prod → crea ciudad → crea evento → aparece en cartelera
 
 > 💡 El frontend usa `VITE_API_BASE_URL` para saber dónde está la API. En dev usa proxy Vite; en prod apunta directo a `localhost:8081`.
 
@@ -1231,7 +1255,8 @@ pnpm run dev
 | Healthcheck | `curl http://localhost:8081/healthcheck` |
 | Cartelera | `curl http://localhost:8081/api/v1/events` |
 | Ciudades | `curl http://localhost:8081/api/v1/cities` |
-| Crear evento (admin) | `curl -X POST -u admin:admin -H "Content-Type: application/json" -d '{"cityId":1,"name":"Test","venue":"X","capacity":10,"eventDate":"2026-12-15T20:00:00","price":100}' http://localhost:8081/api/v1/events` |
+| Login (token JWT) | `curl -X POST http://localhost:8081/api/v1/auth/login -H "Content-Type: application/json" -d '{"email":"admin@ticketera.com","password":"admin123!"}'` |
+| Crear evento (admin) | `curl -X POST http://localhost:8081/api/v1/events -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" -d '{"cityId":1,"name":"Test","venue":"X","capacity":10,"eventDate":"2026-12-15T20:00:00","price":100}'` |
 | Ver logs API (Docker) | `docker compose logs -f api` |
 | Ver logs DB (Docker) | `docker compose logs -f db` |
 | Reset DB completo | `docker compose down -v && docker compose up -d db` |
