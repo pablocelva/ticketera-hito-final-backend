@@ -1,13 +1,16 @@
 package com.ticketera.application.usecase;
 
 import com.ticketera.domain.entity.Event;
+import com.ticketera.domain.entity.User;
 import com.ticketera.domain.exception.EventNotFoundException;
 import com.ticketera.domain.exception.InvalidOrderException;
 import com.ticketera.domain.repository.EventRepository;
 import com.ticketera.domain.repository.TicketRepository;
+import com.ticketera.domain.repository.UserRepository;
 import com.ticketera.domain.valueobject.CityId;
 import com.ticketera.domain.valueobject.EventId;
 import com.ticketera.domain.valueobject.EventStatus;
+import com.ticketera.domain.valueobject.Role;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,6 +26,7 @@ class ProcessOrderUseCaseTest {
 
     private EventRepository eventRepository;
     private TicketRepository ticketRepository;
+    private UserRepository userRepository;
     private com.ticketera.application.port.MessageNotifier notifier;
     private ProcessOrderUseCase useCase;
     private Event event;
@@ -31,8 +35,9 @@ class ProcessOrderUseCaseTest {
     void setUp() {
         eventRepository = mock(EventRepository.class);
         ticketRepository = mock(TicketRepository.class);
+        userRepository = mock(UserRepository.class);
         notifier = mock(com.ticketera.application.port.MessageNotifier.class);
-        useCase = new ProcessOrderUseCase(eventRepository, ticketRepository, notifier);
+        useCase = new ProcessOrderUseCase(eventRepository, ticketRepository, notifier, userRepository);
         event = Event.reconstitute(
             1L, new EventId("evt-001"),
             new CityId(1L),
@@ -137,5 +142,29 @@ class ProcessOrderUseCaseTest {
         verify(ticketRepository).save(argThat(ticket ->
             ticket.getCustomerName().equals("Juan")
                 && ticket.getCustomerEmail() == null));
+    }
+
+    @Test
+    @DisplayName("Links ticket to registered user when email matches an account")
+    void linksTicketToRegisteredUser() {
+        when(userRepository.findByEmail("pablo@test.com"))
+            .thenReturn(Optional.of(new User(42L, "pablo@test.com", "Pablo", "pw", Role.ROLE_USER, null)));
+
+        useCase.execute(1L, 1, "Pablo", "pablo@test.com");
+
+        verify(ticketRepository).save(argThat(ticket ->
+            ticket.getUserId() != null && ticket.getUserId().equals(42L)));
+    }
+
+    @Test
+    @DisplayName("Leaves ticket userId null when email has no registered account")
+    void leavesUserIdNullWhenEmailNotRegistered() {
+        when(userRepository.findByEmail("guest@test.com")).thenReturn(Optional.empty());
+
+        useCase.execute(1L, 1, "Guest", "guest@test.com");
+
+        verify(ticketRepository).save(argThat(ticket ->
+            ticket.getCustomerName().equals("Guest")
+                && ticket.getUserId() == null));
     }
 }

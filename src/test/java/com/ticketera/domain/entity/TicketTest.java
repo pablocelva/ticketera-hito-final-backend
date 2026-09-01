@@ -140,4 +140,39 @@ class TicketTest {
             .as("Blank email should result in null (anonymous)")
             .isNull();
     }
+
+    @Test
+    @DisplayName("Enriched ticket with userId keeps the linked user id")
+    void enrichedTicketWithUserId() {
+        Ticket ticket = new Ticket(
+            new TicketId("t-008"),
+            new EventId("evt-001"),
+            "Pablo",
+            new Email("pablo@test.com"),
+            "order-003",
+            new Money(25000.0),
+            new Money(25000.0),
+            OrderStatus.CONFIRMED,
+            42L,
+            LocalDateTime.now());
+
+        assertThat(ticket.getUserId()).isEqualTo(42L);
+    }
+
+    @Test
+    @DisplayName("Enriched ticket without userId stays anonymous")
+    void enrichedTicketWithoutUserIdIsAnonymous() {
+        Ticket ticket = new Ticket(
+            new TicketId("t-009"),
+            new EventId("evt-001"),
+            "Guest",
+            null,
+            "order-004",
+            new Money(25000.0),
+            new Money(25000.0),
+            OrderStatus.CONFIRMED,
+            LocalDateTime.now());
+
+        assertThat(ticket.getUserId()).isNull();
+    }
 }

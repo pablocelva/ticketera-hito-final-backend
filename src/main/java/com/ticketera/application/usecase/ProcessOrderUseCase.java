@@ -6,6 +6,7 @@ import com.ticketera.domain.entity.Ticket;
 import com.ticketera.domain.exception.EventNotFoundException;
 import com.ticketera.domain.repository.EventRepository;
 import com.ticketera.domain.repository.TicketRepository;
+import com.ticketera.domain.repository.UserRepository;
 import com.ticketera.domain.valueobject.EventId;
 import com.ticketera.domain.valueobject.Money;
 import com.ticketera.domain.valueobject.OrderStatus;
@@ -22,11 +23,14 @@ public class ProcessOrderUseCase {
     private final EventRepository eventRepository;
     private final TicketRepository ticketRepository;
     private final MessageNotifier notifier;
+    private final UserRepository userRepository;
 
-    public ProcessOrderUseCase(EventRepository eventRepository, TicketRepository ticketRepository, MessageNotifier notifier) {
+    public ProcessOrderUseCase(EventRepository eventRepository, TicketRepository ticketRepository,
+                               MessageNotifier notifier, UserRepository userRepository) {
         this.eventRepository = eventRepository;
         this.ticketRepository = ticketRepository;
         this.notifier = notifier;
+        this.userRepository = userRepository;
     }
 
     public OrderResult execute(Long eventId, int quantity) {
@@ -47,6 +51,7 @@ public class ProcessOrderUseCase {
         String orderId = UUID.randomUUID().toString();
         String resolvedName = customerName != null ? customerName : "anonymous";
         String resolvedEmail = (customerEmail != null && !customerEmail.isBlank()) ? customerEmail : null;
+        Long userId = resolveUserId(resolvedEmail);
 
         for (int i = 0; i < quantity; i++) {
             Ticket ticket = new Ticket(
@@ -58,6 +63,7 @@ public class ProcessOrderUseCase {
                 new Money(unitPrice),
                 new Money(totalPrice),
                 OrderStatus.CONFIRMED,
+                userId,
                 LocalDateTime.now());
             ticketRepository.save(ticket);
         }
@@ -78,5 +84,14 @@ public class ProcessOrderUseCase {
             totalPrice,
             OrderStatus.CONFIRMED.name(),
             LocalDateTime.now().toString());
+    }
+
+    private Long resolveUserId(String customerEmail) {
+        if (customerEmail == null || customerEmail.isBlank()) {
+            return null;
+        }
+        return userRepository.findByEmail(customerEmail)
+            .map(com.ticketera.domain.entity.User::getId)
+            .orElse(null);
     }
 }

@@ -42,6 +42,9 @@ public class TicketEntity {
     @Column(name = "status", length = 20)
     private String status;
 
+    @Column(name = "user_id")
+    private Long userId;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -50,7 +53,7 @@ public class TicketEntity {
 
     private TicketEntity(String id, Long eventId, String customerName, String customerEmail,
                          String orderId, Double unitPrice, Double totalAmount,
-                         String status, LocalDateTime createdAt) {
+                         String status, Long userId, LocalDateTime createdAt) {
         this.id = id;
         this.eventId = eventId;
         this.customerName = customerName;
@@ -59,6 +62,7 @@ public class TicketEntity {
         this.unitPrice = unitPrice;
         this.totalAmount = totalAmount;
         this.status = status;
+        this.userId = userId;
         this.createdAt = createdAt;
     }
 
@@ -72,6 +76,7 @@ public class TicketEntity {
             ticket.getUnitPrice() != null ? ticket.getUnitPrice().value() : null,
             ticket.getTotalAmount() != null ? ticket.getTotalAmount().value() : null,
             ticket.getStatus() != null ? ticket.getStatus().name() : null,
+            ticket.getUserId(),
             ticket.getCreatedAt());
     }
 
@@ -85,6 +90,7 @@ public class TicketEntity {
             unitPrice != null ? new Money(unitPrice) : null,
             totalAmount != null ? new Money(totalAmount) : null,
             status != null ? OrderStatus.valueOf(status) : null,
+            userId,
             createdAt);
     }
 

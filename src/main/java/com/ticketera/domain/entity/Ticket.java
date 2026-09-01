@@ -18,6 +18,7 @@ public class Ticket {
     private final Money unitPrice;
     private final Money totalAmount;
     private final OrderStatus status;
+    private final Long userId;
     private final LocalDateTime createdAt;
 
     public Ticket(TicketId id, Long eventId, String customerName, String customerEmail) {
@@ -29,12 +30,20 @@ public class Ticket {
         this.unitPrice = null;
         this.totalAmount = null;
         this.status = null;
+        this.userId = null;
         this.createdAt = null;
     }
 
     public Ticket(TicketId id, EventId eventId, String customerName, Email customerEmail,
                   String orderId, Money unitPrice, Money totalAmount,
                   OrderStatus status, LocalDateTime createdAt) {
+        this(id, eventId, customerName, customerEmail, orderId, unitPrice, totalAmount,
+            status, null, createdAt);
+    }
+
+    public Ticket(TicketId id, EventId eventId, String customerName, Email customerEmail,
+                  String orderId, Money unitPrice, Money totalAmount,
+                  OrderStatus status, Long userId, LocalDateTime createdAt) {
         if (customerName == null || customerName.isBlank()) {
             throw new IllegalArgumentException("Customer name cannot be blank");
         }
@@ -46,6 +55,7 @@ public class Ticket {
         this.unitPrice = unitPrice;
         this.totalAmount = totalAmount;
         this.status = status;
+        this.userId = userId;
         this.createdAt = createdAt;
     }
 
@@ -79,6 +89,10 @@ public class Ticket {
 
     public OrderStatus getStatus() {
         return status;
+    }
+
+    public Long getUserId() {
+        return userId;
     }
 
     public LocalDateTime getCreatedAt() {

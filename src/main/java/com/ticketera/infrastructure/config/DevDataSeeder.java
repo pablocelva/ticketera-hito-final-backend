@@ -2,13 +2,17 @@ package com.ticketera.infrastructure.config;
 
 import com.ticketera.domain.entity.City;
 import com.ticketera.domain.entity.Event;
+import com.ticketera.domain.entity.User;
 import com.ticketera.domain.repository.CityRepository;
 import com.ticketera.domain.repository.EventRepository;
+import com.ticketera.domain.repository.UserRepository;
+import com.ticketera.domain.valueobject.Role;
 import com.ticketera.domain.valueobject.TicketQuantity;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
 
@@ -17,8 +21,18 @@ import java.time.LocalDateTime;
 public class DevDataSeeder {
 
     @Bean
-    CommandLineRunner seedData(CityRepository cityRepository, EventRepository eventRepository) {
+    CommandLineRunner seedData(CityRepository cityRepository, EventRepository eventRepository,
+                               UserRepository userRepository, PasswordEncoder passwordEncoder) {
         return args -> {
+            if (userRepository.findByEmail("admin@ticketera.com").isEmpty()) {
+                userRepository.save(new User(null,
+                    "admin@ticketera.com",
+                    "Administrator",
+                    passwordEncoder.encode("admin123!"),
+                    Role.ROLE_ADMIN,
+                    LocalDateTime.now()));
+            }
+
             if (cityRepository.findAll().isEmpty()) {
                 cityRepository.save(new City(null, "SCL", "Santiago"));
                 cityRepository.save(new City(null, "VAP", "Valparaíso"));

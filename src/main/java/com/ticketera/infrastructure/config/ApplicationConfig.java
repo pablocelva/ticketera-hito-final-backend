@@ -32,8 +32,8 @@ public class ApplicationConfig {
     }
 
     @Bean
-    public ProcessOrderUseCase processOrderUseCase(EventRepository eventRepository, TicketRepository ticketRepository, MessageNotifier notifier) {
-        return new ProcessOrderUseCase(eventRepository, ticketRepository, notifier);
+    public ProcessOrderUseCase processOrderUseCase(EventRepository eventRepository, TicketRepository ticketRepository, MessageNotifier notifier, UserRepository userRepository) {
+        return new ProcessOrderUseCase(eventRepository, ticketRepository, notifier, userRepository);
     }
 
     @Bean
