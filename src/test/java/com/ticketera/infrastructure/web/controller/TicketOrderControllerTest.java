@@ -4,10 +4,12 @@ import com.ticketera.application.usecase.OrderResult;
 import com.ticketera.application.usecase.ProcessOrderUseCase;
 import com.ticketera.application.usecase.SendBookingConfirmationUseCase;
 import com.ticketera.domain.exception.SoldOutException;
+import com.ticketera.infrastructure.security.JwtTestConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -23,6 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisplayName("Ticket Order Controller")
 @WebMvcTest(TicketOrderController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@Import(JwtTestConfig.class)
 class TicketOrderControllerTest {
 
     @Autowired

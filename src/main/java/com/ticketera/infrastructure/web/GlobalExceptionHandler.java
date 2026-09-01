@@ -5,9 +5,11 @@ import com.ticketera.domain.exception.InvalidEmailException;
 import com.ticketera.domain.exception.InvalidOrderException;
 import com.ticketera.domain.exception.SoldOutException;
 import com.ticketera.domain.exception.CityNotFoundException;
+import com.ticketera.domain.exception.UserAlreadyExistsException;
 import com.ticketera.infrastructure.web.dto.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -33,6 +35,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({InvalidOrderException.class, InvalidEmailException.class})
     public ResponseEntity<ErrorResponse> handleInvalidDomainData(RuntimeException ex) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(UserAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleUserAlreadyExists(UserAlreadyExistsException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> handleAuthentication(AuthenticationException ex) {
+        return build(HttpStatus.UNAUTHORIZED, "Invalid credentials");
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

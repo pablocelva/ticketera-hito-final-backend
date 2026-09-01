@@ -7,10 +7,12 @@ import com.ticketera.application.usecase.GetCityDetailsUseCase;
 import com.ticketera.application.usecase.UpdateCityUseCase;
 import com.ticketera.domain.entity.City;
 import com.ticketera.domain.exception.CityNotFoundException;
+import com.ticketera.infrastructure.security.JwtTestConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -27,6 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisplayName("City Controller")
 @WebMvcTest(CityController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@Import(JwtTestConfig.class)
 class CityControllerTest {
 
     @Autowired

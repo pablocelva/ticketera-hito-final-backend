@@ -1,6 +1,7 @@
 package com.ticketera.infrastructure.config;
 
 import com.ticketera.application.port.MessageNotifier;
+import com.ticketera.application.usecase.AuthUseCase;
 import com.ticketera.application.usecase.CreateEventUseCase;
 import com.ticketera.application.usecase.DeleteEventUseCase;
 import com.ticketera.application.usecase.GetEventDetailsUseCase;
@@ -17,11 +18,18 @@ import com.ticketera.application.usecase.UpdateCityUseCase;
 import com.ticketera.domain.repository.CityRepository;
 import com.ticketera.domain.repository.EventRepository;
 import com.ticketera.domain.repository.TicketRepository;
+import com.ticketera.domain.repository.UserRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Configuration
 public class ApplicationConfig {
+
+    @Bean
+    public AuthUseCase authUseCase(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+        return new AuthUseCase(userRepository, passwordEncoder::encode);
+    }
 
     @Bean
     public ProcessOrderUseCase processOrderUseCase(EventRepository eventRepository, TicketRepository ticketRepository, MessageNotifier notifier) {

@@ -11,10 +11,12 @@ import com.ticketera.domain.exception.EventNotFoundException;
 import com.ticketera.domain.valueobject.CityId;
 import com.ticketera.domain.valueobject.EventId;
 import com.ticketera.domain.valueobject.EventStatus;
+import com.ticketera.infrastructure.security.JwtTestConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -32,6 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisplayName("Event Controller")
 @WebMvcTest(EventController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@Import(JwtTestConfig.class)
 class EventControllerTest {
 
     @Autowired

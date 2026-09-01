@@ -1,20 +1,24 @@
 package com.ticketera.infrastructure.config;
 
+import com.ticketera.infrastructure.security.CustomUserDetailsService;
+import com.ticketera.infrastructure.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -25,18 +29,18 @@ import java.util.List;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CustomUserDetailsService userDetailsService;
     private final Environment environment;
-
-    @Value("${admin.username:admin}")
-    private String adminUsername;
-
-    @Value("${admin.password:admin}")
-    private String adminPassword;
 
     @Value("${cors.allowed-origins:http://localhost:5173}")
     private String allowedOrigins;
 
-    public SecurityConfig(Environment environment) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+                          CustomUserDetailsService userDetailsService,
+                          Environment environment) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.userDetailsService = userDetailsService;
         this.environment = environment;
     }
 
@@ -48,6 +52,7 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authenticationProvider(authenticationProvider())
             .authorizeHttpRequests(auth -> {
                 if (isProd) {
                     auth.requestMatchers("/swagger-ui/**", "/swagger-ui.html",
@@ -56,16 +61,35 @@ public class SecurityConfig {
                     auth.requestMatchers("/swagger-ui/**", "/swagger-ui.html",
                         "/v3/api-docs/**", "/api-docs/**").permitAll();
                 }
-                auth.requestMatchers(HttpMethod.GET, "/api/v1/events/**").permitAll()
+                auth.requestMatchers("/api/v1/auth/**").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/v1/events/**").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/v1/cities/**").permitAll()
-                    .requestMatchers(HttpMethod.GET, "/api/v1/events/*/tickets").permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/v1/orders").permitAll()
                     .requestMatchers("/healthcheck").permitAll()
-                    .anyRequest().authenticated();
+                    .requestMatchers(HttpMethod.POST, "/api/v1/events/**",
+                        "/api/v1/cities/**").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.PUT, "/api/v1/events/**",
+                        "/api/v1/cities/**").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.DELETE, "/api/v1/events/**",
+                        "/api/v1/cities/**").hasRole("ADMIN")
+                    .anyRequest().permitAll();
             })
-            .httpBasic(httpBasic -> {});
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    @Bean
+    public AuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(userDetailsService);
+        authProvider.setPasswordEncoder(passwordEncoder());
+        return authProvider;
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
     }
 
     @Bean
@@ -78,16 +102,6 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", config);
         return source;
-    }
-
-    @Bean
-    public UserDetailsService userDetailsService(PasswordEncoder encoder) {
-        var admin = User.builder()
-            .username(adminUsername)
-            .password(encoder.encode(adminPassword))
-            .roles("ADMIN")
-            .build();
-        return new InMemoryUserDetailsManager(admin);
     }
 
     @Bean

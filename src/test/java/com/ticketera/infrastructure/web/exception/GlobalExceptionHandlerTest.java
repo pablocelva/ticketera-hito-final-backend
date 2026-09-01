@@ -1,6 +1,7 @@
 package com.ticketera.infrastructure.web.exception;
 
 import com.ticketera.domain.exception.*;
+import com.ticketera.infrastructure.security.JwtTestConfig;
 import com.ticketera.infrastructure.web.GlobalExceptionHandler;
 import com.ticketera.infrastructure.web.controller.CityController;
 import com.ticketera.infrastructure.web.controller.EventController;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +24,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 
 @WebMvcTest({GlobalExceptionHandler.class, CityController.class, EventController.class, TicketOrderController.class})
 @AutoConfigureMockMvc(addFilters = false)
+@Import(JwtTestConfig.class)
 @DisplayName("Global Exception Handler")
 class GlobalExceptionHandlerTest {
 
