@@ -125,4 +125,20 @@ public class EventController {
             .map(TicketResponseDto::fromDomain)
             .toList();
     }
+
+    @Operation(summary = "Subir portada de evento", description = "Procesa una imagen multipart y devuelve su Data-URI en Base64")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Imagen procesada exitosamente"),
+        @ApiResponse(responseCode = "400", description = "Archivo inválido o vacío")
+    })
+    @PostMapping(value = "/upload-cover", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<java.util.Map<String, String>> uploadCoverImage(@RequestParam("file") org.springframework.web.multipart.MultipartFile file) throws java.io.IOException {
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("message", "File cannot be empty"));
+        }
+        String contentType = file.getContentType() != null ? file.getContentType() : "image/jpeg";
+        String base64 = java.util.Base64.getEncoder().encodeToString(file.getBytes());
+        String dataUri = "data:" + contentType + ";base64," + base64;
+        return ResponseEntity.ok(java.util.Map.of("imageUrl", dataUri));
+    }
 }

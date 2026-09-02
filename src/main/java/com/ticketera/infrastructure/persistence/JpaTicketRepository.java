@@ -23,6 +23,13 @@ public class JpaTicketRepository implements TicketRepository {
     }
 
     @Override
+    public List<Ticket> findByCustomerEmail(String customerEmail) {
+        return jpaRepository.findByCustomerEmail(customerEmail).stream()
+            .map(TicketEntity::toDomain)
+            .toList();
+    }
+
+    @Override
     public void save(Ticket ticket) {
         jpaRepository.save(TicketEntity.fromDomain(ticket));
     }

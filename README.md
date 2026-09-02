@@ -289,7 +289,7 @@ hito4-backend-spring-boot/
 |---|---|
 | `ApplicationConfig.java` | Clase `@Configuration` que actúa como *composition root*: registra los catorce casos de uso como beans (`@Bean`), inyectándoles los adaptadores de infraestructura. Mantiene `domain` y `application` libres de anotaciones de framework. |
 | `OpenApiConfig.java` | Bean `OpenAPI` con la metadata de la documentación. Anotado con `@Profile("dev")`: fuera del perfil dev ni siquiera se registra en el contexto. |
-| `DevDataSeeder.java` | `CommandLineRunner` acotado al perfil `dev` (`@Profile("dev")`, no corre en prod): siembra el **usuario admin** (`admin@ticketera.com` / `admin123!`, rol `ROLE_ADMIN`) y, si las tablas están vacías, tres ciudades (`LIM` Lima, `BOG` Bogotá, `MAD` Madrid) y cuatro eventos enriquecidos (Jazz Night, Rock Fest, La Traviata, Bogota Music Festival) con artist, date, price, imageUrl, featured y estados de negocio reales (Jazz Night `ON_SALE`, La Traviata agotada `SOLD_OUT`). |
+| `DevDataSeeder.java` | `CommandLineRunner` acotado al perfil `dev` (`@Profile("dev")`): siembra el **usuario admin** (`admin@ticketera.com` / `admin123`, rol `ROLE_ADMIN`), el **usuario cliente** (`user@ticketera.com` / `user123`, rol `ROLE_USER`), tres ciudades (`SCL` Santiago, `VAP` Valparaíso, `VDA` Valdivia) y los **7 eventos de los artistas del proyecto** (*Braxton Cook, Elena Pinderhughes, The Internet, Genevieve Artadi, Jazmin Sullivan, Louis Cole, Terrace Martin*). |
 | `SecurityConfig.java` | `@Configuration` con `@EnableWebSecurity`: define un `SecurityFilterChain` con **JWT stateless**, CSRF deshabilitado (API stateless), sesiones `STATELESS` y CORS centralizado via `CorsConfigurationSource`. Registra `JwtAuthenticationFilter` antes del filtro de autenticación por usuario/contraseña y un `DaoAuthenticationProvider` apoyado en `CustomUserDetailsService` (que carga los usuarios de la tabla `users`). Lectura pública (GET events/cities/tickets, POST orders, healthcheck, `/api/v1/auth/**`, Swagger en dev). Mutaciones admin protegidas con rol `ROLE_ADMIN` (POST/PUT/DELETE events y cities). Passwords con BCrypt. |
 
 **Recursos de configuración e infraestructura local:**
@@ -504,6 +504,8 @@ La capa web expone rutas semánticas bajo `/api/v1` con los verbos HTTP correspo
 | `PUT` | `/api/v1/events/{id}` | admin (JWT) | Actualiza todos los campos del evento | 200 | 400, 401, 404 |
 | `DELETE` | `/api/v1/events/{id}` | admin (JWT) | Elimina un evento sin ventas | 204 | 401, 404, 409 |
 | `GET` | `/api/v1/events/{id}/tickets` | público | Entradas vendidas de un evento | 200 | 404 |
+| `POST` | `/api/v1/events/upload-cover` | admin (JWT) | Carga imagen de portada y la convierte a Data-URI Base64 | 200 | 400, 401 |
+| `GET` | `/api/v1/users/me/tickets` | usuario (JWT) | Obtiene las entradas compradas del usuario autenticado | 200 | 401 |
 | `POST` | `/api/v1/orders` | público | Compra entradas y confirma la reserva | 201 | 400, 404, 422 |
 | `GET` | `/api/v1/cities` | público | Lista de ciudades | 200 | — |
 | `GET` | `/api/v1/cities/{id}` | público | Detalle de una ciudad | 200 | 404 |

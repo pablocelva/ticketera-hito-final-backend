@@ -2,6 +2,7 @@ package com.ticketera.infrastructure.web.dto;
 
 import com.ticketera.application.usecase.OrderResult;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.List;
 
 @Schema(description = "Resultado de una orden de compra procesada")
 public record OrderResponse(
@@ -26,10 +27,16 @@ public record OrderResponse(
     @Schema(description = "Estado de la orden", example = "CONFIRMED")
     String status,
     @Schema(description = "Fecha de creacion", example = "2026-08-25T12:00:00")
-    String createdAt
+    String createdAt,
+    @Schema(description = "Lista de entradas emitidas individualmente")
+    List<TicketResponseDto> tickets
 ) {
 
     public static OrderResponse fromDomain(OrderResult result) {
+        List<TicketResponseDto> ticketDtos = result.tickets() != null
+            ? result.tickets().stream().map(TicketResponseDto::fromDomain).toList()
+            : List.of();
+
         return new OrderResponse(
             result.id(),
             result.eventId(),
@@ -41,6 +48,7 @@ public record OrderResponse(
             result.unitPrice(),
             result.totalPrice(),
             result.status(),
-            result.createdAt());
+            result.createdAt(),
+            ticketDtos);
     }
 }

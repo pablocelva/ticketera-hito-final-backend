@@ -8,5 +8,7 @@ public interface TicketRepository {
 
     List<Ticket> findByEventId(Long eventId);
 
+    List<Ticket> findByCustomerEmail(String customerEmail);
+
     void save(Ticket ticket);
 }

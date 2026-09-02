@@ -53,6 +53,7 @@ public class ProcessOrderUseCase {
         String resolvedEmail = (customerEmail != null && !customerEmail.isBlank()) ? customerEmail : null;
         Long userId = resolveUserId(resolvedEmail);
 
+        java.util.List<Ticket> createdTickets = new java.util.ArrayList<>();
         for (int i = 0; i < quantity; i++) {
             Ticket ticket = new Ticket(
                 new TicketId(UUID.randomUUID().toString()),
@@ -66,6 +67,7 @@ public class ProcessOrderUseCase {
                 userId,
                 LocalDateTime.now());
             ticketRepository.save(ticket);
+            createdTickets.add(ticket);
         }
 
         notifier.send(ADMIN_EMAIL,
@@ -83,7 +85,8 @@ public class ProcessOrderUseCase {
             unitPrice,
             totalPrice,
             OrderStatus.CONFIRMED.name(),
-            LocalDateTime.now().toString());
+            LocalDateTime.now().toString(),
+            createdTickets);
     }
 
     private Long resolveUserId(String customerEmail) {

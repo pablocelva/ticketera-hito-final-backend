@@ -27,9 +27,18 @@ public class DevDataSeeder {
             if (userRepository.findByEmail("admin@ticketera.com").isEmpty()) {
                 userRepository.save(new User(null,
                     "admin@ticketera.com",
-                    "Administrator",
-                    passwordEncoder.encode("admin123!"),
+                    "Administrador Ticketera",
+                    passwordEncoder.encode("admin123"),
                     Role.ROLE_ADMIN,
+                    LocalDateTime.now()));
+            }
+
+            if (userRepository.findByEmail("user@ticketera.com").isEmpty()) {
+                userRepository.save(new User(null,
+                    "user@ticketera.com",
+                    "Usuario Cliente",
+                    passwordEncoder.encode("user123"),
+                    Role.ROLE_USER,
                     LocalDateTime.now()));
             }
 

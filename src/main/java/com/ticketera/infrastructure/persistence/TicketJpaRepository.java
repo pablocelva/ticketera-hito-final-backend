@@ -7,4 +7,6 @@ import java.util.List;
 public interface TicketJpaRepository extends JpaRepository<TicketEntity, String> {
 
     List<TicketEntity> findByEventId(Long eventId);
+
+    List<TicketEntity> findByCustomerEmail(String customerEmail);
 }

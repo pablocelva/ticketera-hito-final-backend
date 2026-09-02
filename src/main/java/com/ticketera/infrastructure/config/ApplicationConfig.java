@@ -6,6 +6,7 @@ import com.ticketera.application.usecase.CreateEventUseCase;
 import com.ticketera.application.usecase.DeleteEventUseCase;
 import com.ticketera.application.usecase.GetEventDetailsUseCase;
 import com.ticketera.application.usecase.GetEventTicketsUseCase;
+import com.ticketera.application.usecase.GetUserTicketsUseCase;
 import com.ticketera.application.usecase.GetEventsUseCase;
 import com.ticketera.application.usecase.ProcessOrderUseCase;
 import com.ticketera.application.usecase.SendBookingConfirmationUseCase;
@@ -64,6 +65,11 @@ public class ApplicationConfig {
     @Bean
     public GetEventTicketsUseCase getEventTicketsUseCase(TicketRepository ticketRepository) {
         return new GetEventTicketsUseCase(ticketRepository);
+    }
+
+    @Bean
+    public GetUserTicketsUseCase getUserTicketsUseCase(TicketRepository ticketRepository) {
+        return new GetUserTicketsUseCase(ticketRepository);
     }
 
     @Bean
